@@ -1,0 +1,194 @@
+#! /usr/bin/env bash
+
+#PBS -N prima_<EXPID>_<LEG>
+#PBS -q ns
+#PBS -l EC_billing_account=<ACCOUNT>
+#PBS -l walltime=14:00:00
+#PBS -j oe
+#PBS -l EC_ecfs=1
+#PBS -o log/bck_prmvr_<EXPID>_<LEG>.out
+#PBS -m abe
+
+ #######################################################################
+ # Script that stores output and restart of one leg of a run.          #
+ # Two inputs, EXP and LEG number. Here, we have a template so sed it. #
+ #######################################################################
+ # Notes (AMIP):                                                       #
+ # - 3hr walltime is enough for std res, 12hr is needed for the hires  #
+ #   However ECFS can be very slow sometimes, and more time needed     #
+ # - but can be resubmitted if crashed                                 #
+ # - safely restart where it stops if crashes. Just resubmit.          #
+ # - do not use the tar_restart option with HIRES runs                 #
+ #######################################################################
+
+set -e
+
+cd $PBS_O_WORKDIR
+
+mkdir log || true
+
+exp=<EXPID>
+leg=<LEG>
+
+######################### Hardcoded options #########################
+is_last=0
+
+do_ifs_output=1
+do_ifs_restart=1
+tar_restart=0
+
+do_nem_output=0
+do_nem_restart=0
+
+do_oasis_restart=0
+
+# IN & OUT top dirs
+runs_dir="${SCRATCH}/ECEARTH-RUNS/"
+ecfs_dir="ec:/${USER}/ECEARTH-RUNS/${exp}"
+
+#####################################################################
+
+nextleg=$(( leg + 1 ))
+legnb=$(printf %03d ${leg})
+legnbP1=$(printf %03d ${nextleg})
+
+do_log=${is_last}
+
+
+# all command to be executed from the run top directory
+cd ${runs_dir}/${exp}
+
+bckp_emcp () {
+    emv -e $1  ${ecfs_dir}/$1
+    echmod 444 ${ecfs_dir}/$1
+}
+
+
+#########################
+# copy last oasis restart #
+#########################
+#PLS if (( do_oasis_restart ))
+#PLS then
+#PLS     # get the oasis restart too!
+#PLS     flist="r_???.nc C_ASF_?? C_AOD_?? C_SSA_?? o3ch4.nc C_???.nc"
+#PLS     f=${exp}_${year}_oasis_last_restart.tar.gz
+#PLS     tar -czvf $f $flist
+#PLS     ecp -n $f ${ecfs_dir}/last_restart/$f
+#PLS     echmod 444 ${ecfs_dir}/last_restart/$f
+#PLS fi
+
+############
+# RESTARTS #
+############
+
+if (( do_ifs_restart ))
+then
+
+    emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
+    echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
+
+    if (( is_last ))
+    then
+        for f in srf* ece.info rcf
+        do
+            emv -e $f ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+            echmod 444 ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+        done
+    else
+        if (( tar_restart ))
+        then 
+            f=$(echo restart/ifs/${legnbP1} | sed "s|/|.|g").tar
+            tar -cf $f restart/ifs/${legnbP1}
+            bckp_emcp $f
+        else
+            for f in restart/ifs/${legnbP1}/*
+            do
+                [[ -f $f ]] && bckp_emcp $f
+            done        
+        fi
+    fi
+fi
+ 
+
+# ###############
+# # NEMO output #
+# ###############
+# d=output
+# f=nemo
+# tar -cjf ${d}.${f}.${fdate}.tar.bz2 ${d}/${f}
+# ecp ${d}.${f}.${fdate}.tar.bz2 ${ecfs_dir}
+ 
+##############
+# IFS output #
+##############
+maxsize=34359738368             # limit in bytes for emv
+
+if (( do_ifs_output ))
+then
+    emkdir -p ${ecfs_dir}/output/ifs/${legnb}
+    echmod 755 ${ecfs_dir}/output/ifs/${legnb}
+
+    for f in output/ifs/${legnb}/*
+    do
+        # -- compress GG
+        if [[ $f =~ ICMGG${exp} ]]
+        then
+            gzip ${f}
+            bckp_emcp $f.gz
+     
+        # -- split SH if too large
+        #    (re = skip if a splitted part, we can end up here if it crashed during splitting, in which case we just split again)
+        elif [[ $f =~ ICMSH${exp}[^_]*$ ]] 
+        then
+            # not worth compressing, but split in 3 if larger than what emv can handle (34359738368 bytes)
+            actualsize=$(du -b "$f" | cut -f 1)
+            if (( $actualsize > $maxsize )); then
+                split -n 3 -a 1 -d $f ${f}_
+                \rm -f $f
+                for k in {0..2}
+                do 
+                    bckp_emcp ${f}_${k}
+                done
+            else
+                bckp_emcp $f
+            fi
+
+        # -- a splitted part of original SH
+        #    (note assumed order of "for f in *" globbing: resplit done before (and so no overwrite) if needed)
+        elif [[ $f =~ ICMSH${exp}.*_ ]]
+        then
+            # check on file, may have been emoved if a resplit was done
+            [[ -f $f ]] && bckp_emcp $f
+        else
+            continue
+        fi
+    done
+
+#     # TODO find a way to tar one full year in multi year run
+#     # if hiresclim has been run
+#     if [[ -d post ]]
+#     then
+#         f=${exp}_${year}_ifshc_output.tar.gz
+#         tar -zcvf $f post
+#         bckp_emcp $f
+#     fi
+
+fi
+
+ 
+#######
+# LOG #
+#######
+if (( do_log ))
+then
+    f=log.${exp}.upto.${legnb}.tar.gz
+    tar -cvzf $f log
+    bckp_emcp $f
+fi
+
+
+
+#     if [[ 10#$(basename ${d1}) -le '015' ]]
+#     then
+#         continue
+#     fi

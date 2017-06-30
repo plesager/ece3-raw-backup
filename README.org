@@ -1,0 +1,25 @@
+
+* HOW-TO
+  The /sub_prmvr_bckp.sh/ script parses a template to create a script, which
+  is then submitted.  Several options are still hardcoded in the template. See
+  the *hardcoded options* section at the top of the template. They are mainly
+  switches to choose which output to move to ECFS. But there is an important
+  one to pay attention to: the /is_last/ option should be set to 1 *only* when
+  dealing with the last leg of a run.
+
+  An example call. For moving output from the 3rd leg of experiment aGez:
+  : sub_prmvr_bckp.sh aGez 3
+
+  You can process several legs at once with a simple loop: 
+  :for k in {36..45}; do sub_prmvr_bckp.sh ph01 ${k}; done  
+
+** HPC account
+
+   Normally, your default ECMWF account is used (i.e. 1st one in the list you
+   get with "account -l $USER" on ecgate). You can use another one by either
+   setting (in your ~/.user_bashrc or ~/.bashrc or similar):
+
+   : export ECE3_POSTPROC_ACCOUNT=<hpc account to use>
+
+   or, for something more temporary, by using the -a option at the command
+   line when calling the script. 
