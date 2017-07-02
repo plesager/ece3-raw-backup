@@ -11,7 +11,7 @@
   : sub_prmvr_bckp.sh aGez 3
 
   You can process several legs at once with a simple loop: 
-  :for k in {36..45}; do sub_prmvr_bckp.sh ph01 ${k}; done  
+  : for k in {36..45}; do sub_prmvr_bckp.sh ph01 ${k}; done  
 
 ** HPC account
 
