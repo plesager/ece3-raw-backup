@@ -34,13 +34,10 @@ leg=<LEG>
 is_last=0
 
 do_ifs_output=1
-do_ifs_restart=1
+do_nemo_output=1
+
+do_restart=1
 tar_restart=0
-
-do_nem_output=0
-do_nem_restart=0
-
-do_oasis_restart=0
 
 # IN & OUT top dirs
 runs_dir="${SCRATCH}/ECEARTH-RUNS/"
@@ -55,114 +52,173 @@ legnbP1=$(printf %03d ${nextleg})
 do_log=${is_last}
 
 
-# all command to be executed from the run top directory
+# All commands to be executed from the run top directory
 cd ${runs_dir}/${exp}
 
+##############
+# Utilities  #
+##############
 bckp_emcp () {
     emv -e $1  ${ecfs_dir}/$1
     echmod 444 ${ecfs_dir}/$1
 }
 
+maxsize=34359738368             # limit in bytes for emv
 
-#########################
-# copy last oasis restart #
-#########################
-#PLS if (( do_oasis_restart ))
-#PLS then
-#PLS     # get the oasis restart too!
-#PLS     flist="r_???.nc C_ASF_?? C_AOD_?? C_SSA_?? o3ch4.nc C_???.nc"
-#PLS     f=${exp}_${year}_oasis_last_restart.tar.gz
-#PLS     tar -czvf $f $flist
-#PLS     ecp -n $f ${ecfs_dir}/last_restart/$f
-#PLS     echmod 444 ${ecfs_dir}/last_restart/$f
-#PLS fi
+split_move () {
+    # split in 3 if larger than what emv can handle (34359738368 bytes)
+    local f=$1
+    actualsize=$(du -b "$f" | cut -f 1)
+    if (( $actualsize > $maxsize )); then
+        split -n 3 -a 1 -d $f ${f}_
+        \rm -f $f
+        for k in {0..2}
+        do 
+            bckp_emcp ${f}_${k}
+        done
+    else
+        bckp_emcp $f
+    fi
+}
 
 ############
 # RESTARTS #
 ############
-
-if (( do_ifs_restart ))
+if (( do_restart ))
 then
-
-    emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
-    echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
-
-    if (( is_last ))
+    if [[ -d restart/ifs/${legnbP1} ]] || (( is_last ))
     then
-        for f in srf* ece.info rcf
-        do
-            emv -e $f ${ecfs_dir}/restart/ifs/${legnbP1}/$f
-            echmod 444 ${ecfs_dir}/restart/ifs/${legnbP1}/$f
-        done
-    else
+        echo; echo " *** IFS RESTART ***"; echo
+
+        emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
+        echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
+
+        if (( is_last ))
+        then
+            for f in srf* ece.info rcf
+            do
+                if [[ -f $f ]]; then
+                    emv -e $f ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+                    echmod 444 ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+                fi
+            done
+        else
+            if (( tar_restart ))
+            then 
+                f=$(echo restart/ifs/${legnbP1} | sed "s|/|.|g").tar
+                tar -cf $f restart/ifs/${legnbP1}
+                bckp_emcp $f
+            else
+                for f in restart/ifs/${legnbP1}/*
+                do
+                    [[ -f $f ]] && bckp_emcp $f
+                done        
+            fi
+        fi
+    fi
+ 
+    if [[ -d restart/nemo/${legnbP1} ]] || (( is_last ))
+    then
+        echo; echo " *** NEMO RESTART ***"; echo
+
+        emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
+        echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
+
+        if (( is_last ))
+        then
+            for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
+            do
+                if [[ -f $f ]]; then
+                    emv -e $f ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                    echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                fi
+            done
+        else
+            if (( tar_restart ))
+            then 
+                f=$(echo restart/nemo/${legnbP1} | sed "s|/|.|g").tar
+                tar -cf $f restart/nemo/${legnbP1}
+                bckp_emcp $f
+            else
+                for f in restart/nemo/${legnbP1}/*
+                do
+                    [[ -f $f ]] && bckp_emcp $f
+                done        
+            fi
+        fi
+    fi
+
+    if [[ -d restart/oasis/${legnbP1} ]]
+    then
+        echo; echo " *** OASIS RESTART ***"; echo
+
+        emkdir -p ${ecfs_dir}/restart/oasis/${legnbP1}
+        echmod 755 ${ecfs_dir}/restart/oasis/${legnbP1}
+
         if (( tar_restart ))
         then 
-            f=$(echo restart/ifs/${legnbP1} | sed "s|/|.|g").tar
-            tar -cf $f restart/ifs/${legnbP1}
+            f=$(echo restart/oasis/${legnbP1} | sed "s|/|.|g").tar
+            tar -cf $f restart/oasis/${legnbP1}
             bckp_emcp $f
         else
-            for f in restart/ifs/${legnbP1}/*
+            for f in restart/oasis/${legnbP1}/*
             do
                 [[ -f $f ]] && bckp_emcp $f
             done        
         fi
     fi
 fi
- 
 
-# ###############
-# # NEMO output #
-# ###############
-# d=output
-# f=nemo
-# tar -cjf ${d}.${f}.${fdate}.tar.bz2 ${d}/${f}
-# ecp ${d}.${f}.${fdate}.tar.bz2 ${ecfs_dir}
+###############
+# NEMO output #
+###############
+if (( do_nemo_output ))
+then
+    echo; echo " *** NEMO OUTPUT ***"; echo
+
+    emkdir -p ${ecfs_dir}/output/nemo/${legnb}
+    echmod 755 ${ecfs_dir}/output/nemo/${legnb}
+
+    for ff in output/nemo/${legnb}/*
+    do
+        if [[ $ff =~ ${exp}.*\.nc$ ]]
+        then
+            gzip ${ff}
+            split_move $ff.gz
+        else
+            [[ -f $ff ]] && split_move $ff
+        fi
+    done
+fi
  
 ##############
 # IFS output #
 ##############
-maxsize=34359738368             # limit in bytes for emv
-
 if (( do_ifs_output ))
 then
+    echo; echo " *** IFS OUTPUT ***"; echo
+
     emkdir -p ${ecfs_dir}/output/ifs/${legnb}
     echmod 755 ${ecfs_dir}/output/ifs/${legnb}
 
-    for f in output/ifs/${legnb}/*
-    do
+    for f in output/ifs/${legnb}/*   # only GG not SH files are worth zipping
+    do        
+        # -- already compressed GG
+        if [[ $f =~ ICMGG${exp}.*gz$ ]]
+        then
+            split_move $f
+
         # -- compress GG
-        if [[ $f =~ ICMGG${exp} ]]
+        elif [[ $f =~ ICMGG${exp} ]]
         then
             gzip ${f}
-            bckp_emcp $f.gz
-     
-        # -- split SH if too large
-        #    (re = skip if a splitted part, we can end up here if it crashed during splitting, in which case we just split again)
-        elif [[ $f =~ ICMSH${exp}[^_]*$ ]] 
-        then
-            # not worth compressing, but split in 3 if larger than what emv can handle (34359738368 bytes)
-            actualsize=$(du -b "$f" | cut -f 1)
-            if (( $actualsize > $maxsize )); then
-                split -n 3 -a 1 -d $f ${f}_
-                \rm -f $f
-                for k in {0..2}
-                do 
-                    bckp_emcp ${f}_${k}
-                done
-            else
-                bckp_emcp $f
-            fi
-
-        # -- a splitted part of original SH
-        #    (note assumed order of "for f in *" globbing: resplit done before (and so no overwrite) if needed)
-        elif [[ $f =~ ICMSH${exp}.*_ ]]
-        then
-            # check on file, may have been emoved if a resplit was done
-            [[ -f $f ]] && bckp_emcp $f
+            split_move $f.gz
         else
-            continue
+            # check on file, may have been emoved if a split was repeated
+            [[ -f $f ]] && split_move $f
         fi
     done
+fi
 
 #     # TODO find a way to tar one full year in multi year run
 #     # if hiresclim has been run
@@ -172,9 +228,6 @@ then
 #         tar -zcvf $f post
 #         bckp_emcp $f
 #     fi
-
-fi
-
  
 #######
 # LOG #
@@ -186,9 +239,3 @@ then
     bckp_emcp $f
 fi
 
-
-
-#     if [[ 10#$(basename ${d1}) -le '015' ]]
-#     then
-#         continue
-#     fi
