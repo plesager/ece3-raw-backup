@@ -47,6 +47,7 @@ mkdir -p $OUT
 # -- basic check
 if (( $chck ))
 then
+    echo "Checking $OUT/log/bck_prmvr_$1_$2.out"
     ${PAGER:-less} $OUT/log/bck_prmvr_$1_$2.out
     exit
 fi

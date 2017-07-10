@@ -1,11 +1,19 @@
 
+* PURPOSE
+  To move output and restart from an EC-EARTH experiment to ECFS.  Data are
+  moved and not just copied, since the goal is to free space - particularly
+  with long high resolution runs, since we only have about 30TB on the
+  scratch.
+
 * HOW-TO
   The /sub_prmvr_bckp.sh/ script parses a template to create a script, which
-  is then submitted.  Several options are still hardcoded in the template. See
-  the *hardcoded options* section at the top of the template. They are mainly
-  switches to choose which output to move to ECFS. But there is an important
-  one to pay attention to: the /is_last/ option should be set to 1 *only* when
-  dealing with the last leg of a run.
+  is then submitted.  Few options are still hardcoded in the template
+  (/backup_primavera.sh.tmpl/). See the *hardcoded options* section at the top
+  of the template. They define the top directory of your EC-Earth experiments
+  and the ECFS path where to move the data. You can also switch off the
+  restart. By default all existing output (IFS, NEMO) and restart (IFS, NEMO,
+  OASIS) are put on tape. The option to tar the restarts has not been fully
+  tested.
 
   An example call. For moving output from the 3rd leg of experiment aGez:
   : sub_prmvr_bckp.sh aGez 3
@@ -22,4 +30,24 @@
    : export ECE3_POSTPROC_ACCOUNT=<hpc account to use>
 
    or, for something more temporary, by using the -a option at the command
-   line when calling the script. 
+   line when calling the /sub_prmvr_bckp.sh/ script. 
+
+** Requested walltime
+   The template has a walltime PBSpro directive. You can just remove it, or
+   set it to a small value to reduce queueing time. Here are some estimates,
+   but keep in mind that ECFS can be very slow at times.
+
+*** AMIP, Primavera output
+    - 3hr  is enough for standard resolution
+    - 12hr is needed for the high resolution
+    
+*** CMIP, trunk output for IFS, Primavera output for NEMO
+    - 5hr for high resolution
+
+* IMPORTANT
+  You should not submit a job for the last terminated leg if the experiment is
+  *still* running. Not only you probably need the output for some
+  post processing (ece2cmor3 for example), but the script will think that you
+  are storing data from the last leg, and will remove the restart files in the
+  rundir too early.
+ 

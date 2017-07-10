@@ -10,13 +10,10 @@
 #PBS -m abe
 
  #######################################################################
- # Script that stores output and restart of one leg of a run.          #
+ # Script that MOVES output and restart of one leg of a run to ECFS.   #
  # Two inputs, EXP and LEG number. Here, we have a template so sed it. #
  #######################################################################
- # Notes (AMIP):                                                       #
- # - 3hr walltime is enough for std res, 12hr is needed for the hires  #
- #   However ECFS can be very slow sometimes, and more time needed     #
- # - but can be resubmitted if crashed                                 #
+ # Notes:                                                              #
  # - safely restart where it stops if crashes. Just resubmit.          #
  # - do not use the tar_restart option with HIRES runs                 #
  #######################################################################
@@ -31,10 +28,6 @@ exp=<EXPID>
 leg=<LEG>
 
 ######################### Hardcoded options #########################
-is_last=0
-
-do_ifs_output=1
-do_nemo_output=1
 
 do_restart=1
 tar_restart=0
@@ -49,7 +42,18 @@ nextleg=$(( leg + 1 ))
 legnb=$(printf %03d ${leg})
 legnbP1=$(printf %03d ${nextleg})
 
-do_log=${is_last}
+# -- check for last leg (works as long as code is not still running and processing the last finished leg)
+is_last=1
+[ -d output/ifs/${legnbP1} ]  && is_last=0
+[ -d output/nemo/${legnbP1} ] && is_last=0
+
+(( is_last )) && echo " *** LAST LEG ASSUMED *** "
+
+do_log=${is_last}               # pack all logs when doing last leg
+
+# -- check for outputs
+[[ -d output/ifs/${legn} ]]  && do_ifs_output=1  || do_ifs_output=0 
+[[ -d output/nemo/${legn} ]] && do_nemo_output=1 || do_nemo_output=0 
 
 
 # All commands to be executed from the run top directory
