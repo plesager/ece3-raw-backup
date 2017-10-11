@@ -1,53 +1,70 @@
+* EC-EARTH3 BACKUP TOOLS
+** PURPOSE
+   To move output, restart and post-processed (hiresclim2) data from an
+   EC-EARTH experiment to ECFS tape archive.  Data are moved and not just
+   copied, since the goal is to free space - particularly with long and/or
+   high resolution runs, since we only have about 30TB on the scratch.
 
-* PURPOSE
-  To move output and restart from an EC-EARTH experiment to ECFS.  Data are
-  moved and not just copied, since the goal is to free space - particularly
-  with long high resolution runs, since we only have about 30TB on the
-  scratch.
+** HOW-TO
+   The /sub_ece3_bckp.sh/ script parses a template to create and submit
+   another script. The arguments of the script are the 4-letter experiment id
+   and the leg number to backup.
 
-* HOW-TO
-  The /sub_prmvr_bckp.sh/ script parses a template to create a script, which
-  is then submitted.  Few options are still hardcoded in the template
-  (/backup_primavera.sh.tmpl/). See the *hardcoded options* section at the top
-  of the template. They define the top directory of your EC-Earth experiments
-  and the ECFS path where to move the data. You can also switch off the
-  restart. By default all existing output (IFS, NEMO) and restart (IFS, NEMO,
-  OASIS) are put on tape. The option to tar the restarts has not been fully
-  tested.
+   An example call. For moving output from the 3rd leg of experiment aGez:
+   : sub_ece3_bckp.sh aGez 3
 
-  An example call. For moving output from the 3rd leg of experiment aGez:
-  : sub_prmvr_bckp.sh aGez 3
+   You can process several legs at once with a simple loop: 
+   : for k in {36..45}; do sub_ece3_bckp.sh ph01 ${k}; done  
 
-  You can process several legs at once with a simple loop: 
-  : for k in {36..45}; do sub_prmvr_bckp.sh ph01 ${k}; done  
+   Few options are still hardcoded in the template
+   (/backup_ecearth3.sh.tmpl/). See the *hardcoded options* section at the top
+   of the template, where you must set the correct top directory of your
+   EC-Earth experiments and the ECFS path where to move the data.
 
-** HPC account
+   By default all existing output (IFS, NEMO) and restart (IFS, NEMO, OASIS)
+   are put on tape. But you can skip output or restart with the switches in
+   the *hardcoded options* section.
 
-   Normally, your default ECMWF account is used (i.e. 1st one in the list you
-   get with "account -l $USER" on ecgate). You can use another one by either
-   setting (in your ~/.user_bashrc or ~/.bashrc or similar):
+*** Log
+    The created script and its log  are found in the $SCRATCH/tmp_ece3_bckp dir.
 
-   : export ECE3_POSTPROC_ACCOUNT=<hpc account to use>
+*** HPC account
+    Normally, your default ECMWF account is used (i.e. 1st one in the list you
+    get with "account -l $USER" on ecgate). You can use another one by either
+    setting (in your ~/.user_bashrc or ~/.bashrc or similar):
 
-   or, for something more temporary, by using the -a option at the command
-   line when calling the /sub_prmvr_bckp.sh/ script. 
+    : export ECE3_POSTPROC_ACCOUNT=<hpc account to use>
 
-** Requested walltime
-   The template has a walltime PBSpro directive. You can just remove it, or
-   set it to a small value to reduce queueing time. Here are some estimates,
-   but keep in mind that ECFS can be very slow at times.
+    or, for something more temporary, by using the -a option at the command
+    line when calling the /sub_ece3_bckp.sh/ script. 
 
-*** AMIP, Primavera output
-    - 3hr  is enough for standard resolution
-    - 12hr is needed for the high resolution
-    
-*** CMIP, trunk output for IFS, Primavera output for NEMO
-    - 5hr for high resolution
+*** Requested walltime
+    The template has a walltime PBSpro directive. You can just remove it, or
+    set it to a small value to reduce queueing time. Here are some estimates,
+    but keep in mind that ECFS can be very slow at times.
 
-* IMPORTANT
-  You should not submit a job for the last terminated leg if the experiment is
-  *still* running. Not only you probably need the output for some
-  post processing (ece2cmor3 for example), but the script will think that you
-  are storing data from the last leg, and will remove the restart files in the
-  rundir too early.
- 
+**** AMIP, Primavera output
+     - 3hr  is enough for standard resolution
+     - 12hr is needed for the high resolution
+     
+**** CMIP, trunk output for IFS, Primavera output for NEMO
+     - 5hr for high resolution
+
+** IMPORTANT
+   You should not submit a job for the last terminated leg if the experiment is
+   *still* running. Not only you probably need the output for some
+   post processing (ece2cmor3 for example), but the script will think that you
+   are storing data from the last leg, and will remove the restart files in the
+   rundir too early.
+  
+** Utilities
+   There are a few other scripts that can be useful. They all have few
+   hardcoded settings at the top (typically the top directory of your
+   EC-Earth experiments):
+   - /check_bckp.sh/ : list the dirs that are not empty, and give their size.
+   - /split_2y.sh/ : to copy data from an experiment with 2-year legs to a new
+     one with 1-year legs, and a new name if needed.
+   - /rebuild_bckp.sh/ : to rebuild large files that have been split into 2 or
+     more pieces when being backed up. Useful when retrieving files from
+     tapes for additional work. 
+

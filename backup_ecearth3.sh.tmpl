@@ -1,13 +1,12 @@
 #! /usr/bin/env bash
 
-#PBS -N prima_<EXPID>_<LEG>
+#PBS -N bckp_<EXPID>_<LEG>
 #PBS -q ns
 #PBS -l EC_billing_account=<ACCOUNT>
-#PBS -l walltime=14:00:00
+#PBS -l walltime=24:00:00
 #PBS -j oe
 #PBS -l EC_ecfs=1
-#PBS -o log/bck_prmvr_<EXPID>_<LEG>.out
-#PBS -m abe
+#PBS -o log/bckp_<EXPID>_<LEG>.out
 
  #######################################################################
  # Script that MOVES output and restart of one leg of a run to ECFS.   #
@@ -22,15 +21,20 @@ set -e
 
 cd $PBS_O_WORKDIR
 
-mkdir log || true
+############################# To be sed #############################
 
 exp=<EXPID>
 leg=<LEG>
 
 ######################### Hardcoded options #########################
 
-do_restart=1
 tar_restart=1
+
+# -- set to 0 if you want to ignore these data - by default all data found are put on ECFS
+do_restart=1
+do_ifs_output=1  
+do_nemo_output=1 
+do_hiresclim2=1
 
 # IN & OUT top dirs
 runs_dir="${SCRATCH}/ECEARTH-RUNS/"
@@ -51,15 +55,12 @@ is_last=1
 
 do_log=${is_last}               # pack all logs when doing last leg
 
-# -- check for outputs
-[[ -d output/ifs/${legn} ]]  && do_ifs_output=1  || do_ifs_output=0 
-[[ -d output/nemo/${legn} ]] && do_nemo_output=1 || do_nemo_output=0 
 
 # -- summary
 echo " *II* processing leg $legnb"
 (( is_last )) && echo " *II* LAST LEG ASSUMED"
-echo " *II* restart: $do_restart"
-echo " *II* ifs output: $do_ifs_output"
+echo " *II* all restart: $do_restart"
+echo " *II*  ifs output: $do_ifs_output"
 echo " *II* nemo output: $do_nemo_output"
 
 ##############
@@ -70,16 +71,17 @@ bckp_emcp () {
     echmod 444 ${ecfs_dir}/$1
 }
 
-maxsize=34359738368             # limit in bytes for emv
+maxsize=34359738368             # limit in bytes for emv as of October 2017
 
 split_move () {
-    # split in 3 if larger than what emv can handle (34359738368 bytes)
+    # split if larger than what emv can handle (34359738368 bytes)
     local f=$1
     actualsize=$(du -b "$f" | cut -f 1)
     if (( $actualsize > $maxsize )); then
-        split -n 3 -a 1 -d $f ${f}_
+        nn=$(( $actualsize / $maxsize + 1))
+        split -n $nn -a 1 -d $f ${f}_
         \rm -f $f
-        for k in {0..2}
+        for k in $(eval echo {0..$((nn-1))})
         do 
             bckp_emcp ${f}_${k}
         done
@@ -88,14 +90,19 @@ split_move () {
     fi
 }
 
+not_empty_dir () {
+    [[ ! -d "$1" ]] && return 1
+    [ -n "$(ls -A $1)" ] && return 0 || return 1
+}
+
 ############
 # RESTARTS #
 ############
 if (( do_restart ))
 then
-    if [[ -d restart/ifs/${legnbP1} ]] || (( is_last ))
+    if $(not_empty_dir restart/ifs/${legnbP1}) || (( is_last ))
     then
-        echo; echo " *** IFS RESTART ***"; echo
+        echo; echo " *** IFS RESTART ${legnbP1} ***"; echo
 
         emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
         echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
@@ -112,21 +119,24 @@ then
         else
             if (( tar_restart ))
             then 
+                # need to check if remote exists to trap cases of crash after
+                # 'bckp_emcp' and before end of '\rm -f', for now let script stop
                 f=$(echo restart/ifs/${legnbP1} | sed "s|/|.|g").tar
                 tar -cf $f restart/ifs/${legnbP1}
                 bckp_emcp $f
+                \rm -f restart/ifs/${legnbP1}/*
             else
                 for f in restart/ifs/${legnbP1}/*
                 do
-                    [[ -f $f ]] && bckp_emcp $f
-                done        
-            fi
+                    [[ -f $f ]] && split_move $f
+                done      
+            fi  
         fi
     fi
  
-    if [[ -d restart/nemo/${legnbP1} ]] || (( is_last ))
+    if $(not_empty_dir restart/nemo/${legnbP1}) || (( is_last ))
     then
-        echo; echo " *** NEMO RESTART ***"; echo
+        echo; echo " *** NEMO RESTART ${legnbP1} ***"; echo
 
         emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
         echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
@@ -140,37 +150,43 @@ then
                     echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
                 fi
             done
-        else
+        else            
             if (( tar_restart ))
             then 
+                # need to check if remote exists to trap cases of crash after
+                # 'bckp_emcp' and before end of '\rm -f', for now let the script stop
                 f=$(echo restart/nemo/${legnbP1} | sed "s|/|.|g").tar
                 tar -cf $f restart/nemo/${legnbP1}
                 bckp_emcp $f
+                \rm -f restart/nemo/${legnbP1}/*                   
             else
                 for f in restart/nemo/${legnbP1}/*
                 do
-                    [[ -f $f ]] && bckp_emcp $f
+                    [[ -f $f ]] && split_move $f
                 done        
             fi
         fi
     fi
 
-    if [[ -d restart/oasis/${legnbP1} ]]
+    if not_empty_dir restart/oasis/${legnbP1}
     then
-        echo; echo " *** OASIS RESTART ***"; echo
-
-        emkdir -p ${ecfs_dir}/restart/oasis/${legnbP1}
-        echmod 755 ${ecfs_dir}/restart/oasis/${legnbP1}
+        echo; echo " *** OASIS RESTART ${legnbP1} ***"; echo
 
         if (( tar_restart ))
         then 
+            # need to check if remote exists to trap cases of crash after
+            # 'bckp_emcp' and before end of '\rm -f', for now let the script stop
             f=$(echo restart/oasis/${legnbP1} | sed "s|/|.|g").tar
             tar -cf $f restart/oasis/${legnbP1}
             bckp_emcp $f
+            \rm -f restart/oasis/${legnbP1}/*
         else
+            emkdir -p ${ecfs_dir}/restart/oasis/${legnbP1}
+            echmod 755 ${ecfs_dir}/restart/oasis/${legnbP1}
+
             for f in restart/oasis/${legnbP1}/*
             do
-                [[ -f $f ]] && bckp_emcp $f
+                [[ -f $f ]] && split_move $f
             done        
         fi
     fi
@@ -179,9 +195,9 @@ fi
 ###############
 # NEMO output #
 ###############
-if (( do_nemo_output ))
+if (( do_nemo_output )) && not_empty_dir output/nemo/${legnb}
 then
-    echo; echo " *** NEMO OUTPUT ***"; echo
+    echo; echo " *** NEMO OUTPUT ${legnb} ***"; echo
 
     emkdir -p ${ecfs_dir}/output/nemo/${legnb}
     echmod 755 ${ecfs_dir}/output/nemo/${legnb}
@@ -201,17 +217,17 @@ fi
 ##############
 # IFS output #
 ##############
-if (( do_ifs_output ))
+if (( do_ifs_output )) && not_empty_dir output/ifs/${legnb}
 then
-    echo; echo " *** IFS OUTPUT ***"; echo
+    echo; echo " *** IFS OUTPUT ${legnb} ***"; echo
 
     emkdir -p ${ecfs_dir}/output/ifs/${legnb}
     echmod 755 ${ecfs_dir}/output/ifs/${legnb}
 
     for f in output/ifs/${legnb}/*   # only GG not SH files are worth zipping
     do        
-        # -- already compressed GG
-        if [[ $f =~ ICMGG${exp}.*gz$ ]]
+        # -- [crash cases] already compressed GG, and maybe with a split
+        if [[ $f =~ ICMGG${exp}.*gz(_[0-9])?$ ]]
         then
             split_move $f
 
@@ -231,15 +247,23 @@ fi
 #########################
 # HIRESCLIM2 post ouput #
 #########################
-for k in post/mon/*
-do 
-    if [ -d $k ]
-    then
-        f=${exp}_$(basename $k).tar.gz
-        tar -zcvf $f $k
-        split_move $f
-    fi
-done
+if (( do_hiresclim2 )) && not_empty_dir post/mon
+then
+    echo; echo " *** HIRESCLIM2 ***"; echo
+
+    for k in post/mon/*
+    do 
+        if not_empty_dir $k
+        then
+            # need to check if remote exists to trap cases of crash after
+            # 'bckp_emcp' and before end of '\rm -f', for now let the script stop
+            f=${exp}_hiresclim2_$(basename $k).tar.gz
+            tar -zcvf $f $k
+            bckp_emcp $f
+            \rm -f $k/*
+        fi
+    done
+fi
  
 #######
 # LOG #
@@ -252,3 +276,4 @@ then
     split_move $f
 fi
 
+echo " *II* SUCCESS"
