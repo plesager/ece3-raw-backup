@@ -104,18 +104,28 @@ then
     then
         echo; echo " *** IFS RESTART ${legnbP1} ***"; echo
 
-        emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
-        echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
+        if (( ! tar_restart ))
+        then 
+            emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
+            echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
+        fi
 
         if (( is_last ))
         then
-            for f in srf* ece.info rcf
-            do
-                if [[ -f $f ]]; then
-                    emv -e $f ${ecfs_dir}/restart/ifs/${legnbP1}/$f
-                    echmod 444 ${ecfs_dir}/restart/ifs/${legnbP1}/$f
-                fi
-            done
+            if (( tar_restart ))
+            then 
+                f=restart.ifs.${legnbP1}.tar
+                tar -cf $f  srf* ece.info rcf
+                bckp_emcp $f
+            else
+                for f in srf* ece.info rcf
+                do
+                    if [[ -f $f ]]; then
+                        emv -e $f ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+                        echmod 444 ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+                    fi
+                done
+            fi
         else
             if (( tar_restart ))
             then 
@@ -138,18 +148,28 @@ then
     then
         echo; echo " *** NEMO RESTART ${legnbP1} ***"; echo
 
-        emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
-        echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
+        if (( ! tar_restart ))
+        then 
+            emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
+            echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
+        fi
 
         if (( is_last ))
         then
-            for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
-            do
-                if [[ -f $f ]]; then
-                    emv -e $f ${ecfs_dir}/restart/nemo/${legnbP1}/$f
-                    echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
-                fi
-            done
+            if (( tar_restart ))
+            then 
+                f=restart.nemo.${legnbP1}.tar
+                tar -cf $f ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
+                bckp_emcp $f
+            else
+                for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
+                do
+                    if [[ -f $f ]]; then
+                        emv -e $f ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                        echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                    fi
+                done
+            fi
         else            
             if (( tar_restart ))
             then 

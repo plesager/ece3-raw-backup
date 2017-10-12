@@ -84,7 +84,7 @@ then
         for ff in output restart
         do        
             echo ; echo "*II* checking ${model} ${ff}" ; echo
-            els -l $ecfs_dir/$1/${ff}/${model}
+            #els -l $ecfs_dir/$1/${ff}/${model}
 
             for ddd in $(els $ecfs_dir/$1/${ff}/${model})
             do
