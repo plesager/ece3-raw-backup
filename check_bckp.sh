@@ -65,7 +65,7 @@ do
                 if not_empty_dir $ddd
                 then
                     du -sh $ddd
-                    (( $full )) && [[ $(printf %03d $full) = $ddd ]] && \
+                    (( $full )) && [[ $(printf %03d $full) == $ddd ]] && \
                         ls ${runs_dir}/$1/${ff}/${model}/$(printf %03d $full)
                 fi
             done
@@ -88,8 +88,9 @@ then
 
             for ddd in $(els $ecfs_dir/$1/${ff}/${model})
             do
-                if (( detail ))
+                if (( $full )) && [[ $(printf %03d/ $full) = $ddd ]]
                 then
+                    echo $ddd
                     els -l $ecfs_dir/$1/${ff}/${model}/$ddd
                 else
                     echo $ddd $(els $ecfs_dir/$1/${ff}/${model}/$ddd | wc -w)

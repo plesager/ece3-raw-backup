@@ -14,7 +14,6 @@
  #######################################################################
  # Notes:                                                              #
  # - safely restart where it stops if crashes. Just resubmit.          #
- # - do not use the tar_restart option with HIRES runs                 #
  #######################################################################
 
 set -e
@@ -34,7 +33,7 @@ tar_restart=1
 do_restart=1
 do_ifs_output=1  
 do_nemo_output=1 
-do_hiresclim2=1
+do_hiresclim2=0
 
 # IN & OUT top dirs
 runs_dir="${SCRATCH}/ECEARTH-RUNS/"
@@ -49,7 +48,7 @@ legnb=$(printf %03d ${leg})
 legnbP1=$(printf %03d ${nextleg})
 
 # -- check for last leg (works as long as code is not still running and processing the last finished leg)
-is_last=1
+is_last=0
 [ -d output/ifs/${legnbP1} ]  && is_last=0
 [ -d output/nemo/${legnbP1} ] && is_last=0
 
@@ -71,7 +70,7 @@ bckp_emcp () {
     echmod 444 ${ecfs_dir}/$1
 }
 
-maxsize=34359738368             # limit in bytes for emv as of October 2017
+maxsize=34359738368             # limit in bytes for emv as of October 2017 (32GB)
 
 split_move () {
     # split if larger than what emv can handle (34359738368 bytes)
