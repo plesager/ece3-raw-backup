@@ -1,9 +1,10 @@
 * EC-EARTH3 BACKUP TOOLS
 ** PURPOSE
-   To move output, restart and post-processed (hiresclim2) data from an
-   EC-EARTH experiment to ECFS tape archive.  Data are moved and not just
-   copied, since the goal is to free space - particularly with long and/or
-   high resolution runs, since we only have about 30TB on the scratch.
+   To move output, restart and post-processed (hiresclim2, ECmean climatology)
+   data from an EC-EARTH experiment to ECFS tape archive.  Output and restart
+   data are moved and not just copied, since one of the goal is to free
+   space - particularly with long and/or high resolution runs, since we only
+   have about 30TB on the scratch.
 
 ** HOW-TO
    The /sub_ece3_bckp.sh/ script parses a template to create and submit
@@ -13,7 +14,7 @@
    An example call. For moving output from the 3rd leg of experiment aGez:
    : sub_ece3_bckp.sh aGez 3
 
-   You can process several legs at once with a simple loop: 
+   You can process several legs at once with a simple loop:
    : for k in {36..45}; do sub_ece3_bckp.sh ph01 ${k}; done  
 
    Few options are still hardcoded in the template
@@ -49,6 +50,15 @@
      
 **** CMIP, trunk output for IFS, Primavera output for NEMO
      - 5hr for high resolution
+
+
+** ARCHIVE
+   Output data are zipped (except ICMSH), restarts and postprocessed data are
+   tar and zipped. They all end up in the archive (hardcoded option):
+   : ec:/${USER}/ECEARTH-RUNS/${exp}
+
+   Note that large files (>32G) are split into two or more pieces.
+
 
 ** IMPORTANT
    You should not submit a job for the last terminated leg if the experiment is

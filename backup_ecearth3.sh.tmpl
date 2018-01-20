@@ -29,11 +29,12 @@ leg=<LEG>
 
 tar_restart=1
 
-# -- set to 0 if you want to ignore these data - by default all data found are put on ECFS
-do_restart=1
-do_ifs_output=1  
-do_nemo_output=1 
+# -- set to 0 if you want to ignore these data
+do_restart=0
+do_ifs_output=0  
+do_nemo_output=0 
 do_hiresclim2=0
+do_climato=1
 
 # IN & OUT top dirs
 runs_dir="${SCRATCH}/ECEARTH-RUNS/"
@@ -262,6 +263,27 @@ then
     done
 fi
 
+############################
+# CLIMATOLOGY from EC-Mean # (default location assumed)
+############################
+if (( do_climato )) && not_empty_dir post
+then
+    echo; echo " *** CLIMATO ***"; echo
+
+    # -- 730M/period (AMIP)
+    for k in post/clim*
+    do
+        if not_empty_dir $k
+        then
+            f=${exp}-$(basename ${k}.)tar.gz
+            cd ..
+            tar -zcvf $f ${exp}/${k}
+            split_move $f
+            #\rm -rf ${exp}/${k}
+            cd -
+        fi
+    done
+fi
 
 #########################
 # HIRESCLIM2 post ouput #
@@ -270,18 +292,30 @@ if (( do_hiresclim2 )) && not_empty_dir post/mon
 then
     echo; echo " *** HIRESCLIM2 ***"; echo
 
-    for k in post/mon/*
-    do 
-        if not_empty_dir $k
-        then
-            # need to check if remote exists to trap cases of crash after
-            # 'bckp_emcp' and before end of '\rm -f', for now let the script stop
-            f=${exp}_hiresclim2_$(basename $k).tar.gz
-            tar -zcvf $f $k
-            bckp_emcp $f
-            \rm -f $k/*
-        fi
-    done
+    # -- all at once (monthly mean of common variable: 400M/Year for IFS@T255)
+
+    # need to check if remote exists to trap cases of crash after
+    # 'bckp_emcp' and before end of '\rm -f', for now let the script stop
+    f=${exp}_hiresclim2.tar.gz
+    cd ..
+    tar -zcvf $f ${exp}/post/mon
+    split_move $f
+    #\rm -rf ${exp}/post/mon
+    cd -
+
+# --- per year
+#     for k in post/mon/*
+#     do 
+#         if not_empty_dir $k
+#         then
+#             # need to check if remote exists to trap cases of crash after
+#             # 'bckp_emcp' and before end of '\rm -f', for now let the script stop
+#             f=${exp}_hiresclim2_$(basename $k).tar.gz
+#             tar -zcvf $f $k
+#             bckp_emcp $f
+#             \rm -f $k/*
+#         fi
+#     done
 fi
  
 #######
