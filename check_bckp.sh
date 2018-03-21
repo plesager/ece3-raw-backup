@@ -55,7 +55,7 @@ do
     do        
         if [ -d ${runs_dir}/$1/${ff}/${model} ]
         then
-            echo ; echo "*II* checking ${model} ${ff}" ; echo
+            echo ; echo "*II* checking ${model} ${ff} [dir_size leg_nb]" ; echo
 
             cd ${runs_dir}/$1/${ff}/${model}
             #quick-but-not-rigourous: du -sh * | grep -v "^4.0K"
@@ -75,7 +75,7 @@ done
 
 if (( remote ))
 then
-    echo ; echo "*II* checking top dir" ; echo
+    echo ; echo "*II* checking REMOTE top dir" ; echo
 
     els -l $ecfs_dir/$1
 
@@ -83,7 +83,7 @@ then
     do
         for ff in output restart
         do        
-            echo ; echo "*II* checking ${model} ${ff}" ; echo
+            echo ; echo "*II* checking REMOTE ${model} ${ff} [leg_nb/ nb_files]" ; echo
             #els -l $ecfs_dir/$1/${ff}/${model}
 
             for ddd in $(els $ecfs_dir/$1/${ff}/${model})
