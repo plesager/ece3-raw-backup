@@ -9,7 +9,8 @@ usage()
     echo 
     echo "Options are:"
     echo "   -a account  : specify a different special project for accounting (default ${ECE3_POSTPROC_ACCOUNT:-DEFAULT})"
-    echo "   -c          : check for success of previously submitted script with a '${PAGER:-less} <log>' command"
+    echo "   -c          : check for success of previously submitted script"
+    echo "   -l          : page the log files of previously submitted script with a '${PAGER:-less} <log>' command"
     echo
 }
 
@@ -27,6 +28,8 @@ while getopts "h?ca:" opt; do
         a)  account=$OPTARG
             ;;
         c)  chck=1
+            ;;
+        l)  page=1
     esac
 done
 shift $((OPTIND-1))
@@ -47,6 +50,13 @@ mkdir -p $OUT/log
 
 # -- basic check
 if (( $chck ))
+then
+    grep "\*II\*" $OUT/log/bckp_$1_$2.out
+    exit
+fi
+
+# -- read log
+if (( $page ))
 then
     echo "Checking $OUT/log/bckp_$1_$2.out"
     ${PAGER:-less} $OUT/log/bckp_$1_$2.out
