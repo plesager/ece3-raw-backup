@@ -6,7 +6,10 @@
    space - particularly with long and/or high resolution runs, since we only
    have about 30TB on the scratch.
 
-** HOW-TO
+   Utilities to retrieve and/or clean the ECFS archive, and a couple of simple
+   manipulations of the raw output are also available.
+
+** HOW-TO ARCHIVE
    The /sub_ece3_bckp.sh/ script parses a template to create and submit
    another script. The arguments of the script are the 4-letter experiment id
    and the leg number to backup.
@@ -51,6 +54,13 @@
 **** CMIP, trunk output for IFS, Primavera output for NEMO
      - 5hr for high resolution
 
+** HOW-TO RECOVER
+   The /get_clean_ecfs.jb/ script let you retrieve restart files for a
+   particular leg for quick and easy rerun. Retrieving output is not available
+   but could be easily implemented. However option to "move to trash" and
+   "empty trash" are available: this is to clean up an archive (if buggy from
+   some leg or not needed anymore).
+
 
 ** ARCHIVE
    Output data are zipped (except ICMSH), restarts and postprocessed data are
@@ -71,6 +81,7 @@
    There are a few other scripts that can be useful. They all have few
    hardcoded settings at the top (typically the top directory of your
    EC-Earth experiments):
+   - /extract_var.sh/: easily extract a variable from the IFS raw output
    - /check_bckp.sh/ : list the dirs that are not empty, and give their size.
    - /split_2y.sh/ : to copy data from an experiment with 2-year legs to a new
      one with 1-year legs, and a new name if needed.

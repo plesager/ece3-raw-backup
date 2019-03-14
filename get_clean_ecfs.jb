@@ -1,0 +1,128 @@
+#! /usr/bin/env bash
+
+#PBS -N grstt
+#PBS -l EC_billing_account=nlchekli
+#PBS -q np
+#PBS -l EC_total_tasks=36
+#PBS -l EC_threads_per_task=1
+#PBS -j oe
+#PBS -l EC_ecfs=36
+#PBS -o g_pl01.out
+
+set -eu
+
+# -------- SWITCHES
+
+exp=pl01
+
+# LEG NUMBER where to restart 
+#  the restarts to start that leg are kept and retrieved, but the output of
+#  that leg is disgarded
+leg=64
+
+# restarts to retrieve, in tarball or not (case of older archives)
+do_retrieve=0
+tared=1
+
+# to (re)move obsolete output/restart (wrong experiment) to trash
+do_clean=1
+# last leg with output
+uplim=101
+
+# to empty trash
+do_realclean=0
+
+# models to consider for restart and output (include oasis if needed)
+rst_models="ifs"
+out_models="ifs"
+
+# -------- 
+
+legnb=$(printf %03d ${leg})
+
+# -- download restart
+if (( $do_retrieve ))
+then
+    # target dir
+    mkdir -p /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}
+    cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}
+
+    if (( $tared ))
+    then
+        # get the corresponding restarts - case tar file
+        for model in ${rst_models} oasis
+        do
+            { 
+                ecp ec:/nm6/ECEARTH-RUNS/${exp}/restart.${model}.${legnb}.tar restart.${model}.${legnb}.tar 
+                tar -xvf restart.${model}.${legnb}.tar
+                cp restart/${model}/${legnb}/* .
+            } &
+        done
+        wait
+        chmod 640 rcf      
+
+    else
+        # get the corresponding restarts - case of not tar'ed
+        for f in $(els ec:/nm6/ECEARTH-RUNS/${exp}/restart/ifs/${legnb})
+        do
+            ecp ec:/nm6/ECEARTH-RUNS/${exp}/restart/ifs/${legnb}/${f} ${f} &
+            ###TODO : add NEMO+OASIS
+        done
+        wait
+        chmod 640 rcf      
+    fi
+fi
+
+# -- move to trash
+if (( $do_clean ))
+then 
+    emkdir -p ec:/nm6/ECEARTH-RUNS/${exp}/obsolete
+
+    # restart
+    legP1=$(( leg + 1 ))
+    uplimP1=$(( uplim + 1 ))
+
+    for k in $(eval echo {${legP1}..${uplimP1}})
+    do
+        k3d=$(printf %03d ${k})
+        
+        for model in ${rst_models}
+        do
+            echo "cleaning restart ${k3d} of ${model}"
+            ff="ec:/nm6/ECEARTH-RUNS/${exp}/restart.${model}.${k3d}.tar"
+            gg="ec:/nm6/ECEARTH-RUNS/${exp}/obsolete/restart.${model}.${k3d}-oud.tar"
+            echmod 640 $ff
+            emove $ff $gg
+        done
+    done
+
+    # output
+    for k in $(eval echo {${leg}..${uplim}})
+    do
+        for model in ${out_models}
+        do
+            k3d=$(printf %03d ${k})
+            echo "cleaning output ${k3d} of ${model}"
+        
+            for f in $(els ec:/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d})
+            do
+                emove ec:/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}/${f} \
+                    ec:/nm6/ECEARTH-RUNS/${exp}/obsolete/${k3d}-${f}-oud &
+            done
+            wait
+        done
+    done
+fi
+
+# -- empty trash
+if (( $do_realclean ))
+then 
+    for f in $(els ec:/nm6/ECEARTH-RUNS/${exp}/obsolete)
+    do
+        echmod 640 $ff
+        erm  ec:/nm6/ECEARTH-RUNS/${exp}/obsolete/${f} 
+    done
+    wait
+fi
+
+echo "done"
