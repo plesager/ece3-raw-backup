@@ -30,11 +30,19 @@ leg=<LEG>
 tar_restart=1
 
 # -- set to 0 if you want to ignore these data
-do_restart=0
-do_ifs_output=0  
-do_nemo_output=0 
-do_hiresclim2=1
+do_restart=1
+do_ifs_output=1
+do_nemo_output=1
+do_tm5_output=0
+
 do_climato=0
+
+# The following only ONCE (i.e no loop over that script!)
+#   as a safeguard, it is required to have leg=0 
+# Group: number of years to bundle in one archive (roughly 5 for hires, 20 for low res)
+do_hiresclim2=0
+group=5
+(( leg )) && do_hiresclim2=0
 
 # IN & OUT top dirs
 runs_dir="${SCRATCH}/ECEARTH-RUNS/"
@@ -61,6 +69,7 @@ echo " *II* processing leg $legnb"
 echo " *II* all restart: $do_restart"
 echo " *II*  ifs output: $do_ifs_output"
 echo " *II* nemo output: $do_nemo_output"
+echo " *II*  tm5 output: $do_tm5_output"
 echo " *II*  hiresclim2: $do_hiresclim2"
 
 ##############
@@ -236,6 +245,32 @@ then
         fi
     done
 fi
+
+##########################
+# TM5 output and restart #
+##########################
+if (( do_tm5_output )) && not_empty_dir output/tm5/${legnb}
+then
+    echo; echo " *** TM5 OUTPUT ${legnb} ***"; echo
+
+    f=$(echo output/tm5/${legnb} | sed "s|/|.|g").tar
+    tar -cf $f output/tm5/${legnb}
+    split_move $f
+    \rm -f output/tm5/${legnb}/*
+
+fi
+
+if (( do_restart )) && not_empty_dir restart/tm5/${legnb}
+then
+    echo; echo " *** TM5 restart ${legnb} ***"; echo
+    emkdir -p ${ecfs_dir}/restart/tm5
+    echmod 755 ${ecfs_dir}/restart/tm5
+
+    for f in restart/tm5/*
+    do
+        [[ -f $f ]] && split_move $f
+    done
+fi
  
 ##############
 # IFS output #
@@ -295,54 +330,29 @@ if (( do_hiresclim2 )) && not_empty_dir post/mon
 then
     echo; echo " *** HIRESCLIM2 ***"; echo
 
-#    # -- all at once (monthly mean of common variable: 400M/Year for IFS@T255)
-# 
-#    # need to check if remote exists to trap cases of crash after
-#    # 'split_move' and before end of '\rm -f', for now let the script stop
-#    f=${exp}_hiresclim2.tar.gz
-#    cd ..
-#    tar -zcvf $f ${exp}/post/mon
-#    split_move $f
-#    #\rm -rf ${exp}/post/mon
-#    cd -
-
-    # --- group 22 (use 7 for coupled HiRes) years together
+    # --- group 20 (use 7 for coupled HiRes) years together
 
     cd  post/mon
 
     ff=($(ls))
     nb=${#ff[*]}
-    nn=$(( nb / 22 + 1 ))
+    nn=$(( nb / group + 1 ))
     echo
-    echo " making $nn archives of 22 years each"
+    echo " making $nn archives of ${group} years each"
 
     for k in $(eval echo {0..$((nn-1))})
     do
-        is=$((k*22))
+        is=$((k*group))
 
         f=${exp}_${ff[${is}]#Post_}_hiresclim2.tar.gz
 
         echo " archive: $f"
 
-        tar -zcvf $f ${ff[*]:${is}:22}
+        tar -zcvf $f ${ff[*]:${is}:${group}}
         split_move $f
     done
 
     cd -
-
-# --- per year
-#     for k in post/mon/*
-#     do 
-#         if not_empty_dir $k
-#         then
-#             # need to check if remote exists to trap cases of crash after
-#             # 'split_move' and before end of '\rm -f', for now let the script stop
-#             f=${exp}_hiresclim2_$(basename $k).tar.gz
-#             tar -zcvf $f $k
-#             split_move $f
-#             \rm -f $k/*
-#         fi
-#     done
 fi
  
 #######
