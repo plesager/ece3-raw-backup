@@ -51,7 +51,9 @@ mkdir -p $OUT/log
 # -- basic check
 if (( $chck ))
 then
+    ls -l $OUT/log/bckp_$1_$2.out
     grep "\*II\*" $OUT/log/bckp_$1_$2.out
+    echo
     exit
 fi
 
