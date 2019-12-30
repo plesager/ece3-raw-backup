@@ -31,14 +31,14 @@ tar_restart=1
 
 # -- set to 0 if you want to ignore these data
 do_restart=0
-do_ifs_output=1
+do_ifs_output=0
 do_nemo_output=0
-do_tm5_output=1
+do_tm5_output=0
 
 # The following only ONCE (i.e no loop over that script!)
 #   as a safeguard, it is required to have leg=0 
 do_tm5_restart=1
-do_hiresclim2=0
+do_hiresclim2=1
 do_climato=0
 
 (( leg )) && do_hiresclim2=0
@@ -46,7 +46,7 @@ do_climato=0
 
 # Group Hiresclim output: number of years to bundle in one archive (roughly 5
 # for hires, 20 for low res)
-group=5
+group=20
 
 # IN & OUT top dirs
 runs_dir="${SCRATCH}/ECEARTH-RUNS/"
@@ -270,17 +270,32 @@ then
     emkdir -p ${ecfs_dir}/restart/tm5
     echmod 755 ${ecfs_dir}/restart/tm5
 
-    f=($(ls restart/tm5/*))
-    nnn=$(( ${#f[@]} - 1))
-    d1=$(echo ${f[0]} | sed -nr "s|restart/tm5/TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
-    d2=$(echo ${f[$nnn]} | sed -nr "s|restart/tm5/TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+    # --- archives of 35 files is fine
+    tm5grp=35
 
-    f=tm5-restart-${d1}-${d2}.tar
-    tar -cf $f restart/tm5
-    split_move $f 
-    \rm -f restart/tm5/*
+    ff=($(ls restart/tm5/*))
+    nb=${#ff[@]}
+    nn=$(( nb / tm5grp + 1 ))
+    echo
+    echo " making $nn archives of ${nb} years each"
+
+    for k in $(eval echo {0..$((nn-1))})
+    do
+        is=$((k*tm5grp))
+        nf=$tm5grp
+        ie=$(( (k+1) * tm5grp - 1))
+        (( ie > (nb-1) )) && ie=$((nb-1)) && nf=$(( ie - is + 1 ))
+        d1=$(echo ${ff[$is]} | sed -nr "s|restart/tm5/TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+        d2=$(echo ${ff[$ie]} | sed -nr "s|restart/tm5/TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+        f=tm5-restart-${d1}-${d2}.tar
+        echo " archive: $f"
+        tar -cvf $f ${ff[*]:${is}:${nf}}
+        split_move $f
+        #\rm -f ${ff[*]:${is}:${nf}}
+    done
+
 fi
- 
+
 ##############
 # IFS output #
 ##############
