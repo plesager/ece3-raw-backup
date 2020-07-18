@@ -11,6 +11,7 @@ usage()
     echo "   -a account  : specify a different special project for accounting (default ${ECE3_POSTPROC_ACCOUNT:-DEFAULT})"
     echo "   -c          : check for success of previously submitted script"
     echo "   -l          : page the log files of previously submitted script with a '${PAGER:-less} <log>' command"
+    echo "   -d depend   : add job dependency"
     echo
 }
 
@@ -18,8 +19,9 @@ set -e
 
 # -- options
 account=$ECE3_POSTPROC_ACCOUNT
+dependency=
 
-while getopts "h?ca:" opt; do
+while getopts "h?cd:a:" opt; do
     case "$opt" in
         h|\?)
             usage
@@ -28,6 +30,8 @@ while getopts "h?ca:" opt; do
         a)  account=$OPTARG
             ;;
         c)  chck=1
+            ;;
+        d)  dependency=$OPTARG
             ;;
         l)  page=1
     esac
@@ -73,6 +77,10 @@ sed "s/<EXPID>/$1/" < backup_ecearth3.sh.tmpl > $tgt_script
 [[ -n $account ]] && \
     sed -i "s/<ACCOUNT>/$account/" $tgt_script || \
     sed -i "/<ACCOUNT>/ d" $tgt_script
+
+[[ -n $dependency ]] && \
+    sed -i "s/<DEPENDENCY>/$dependency/" $tgt_script || \
+    sed -i "/<DEPENDENCY>/ d" $tgt_script
 
 sed -i "s|<LEG>|$2|" $tgt_script
 

@@ -4,6 +4,7 @@
 #PBS -q ns
 #PBS -l EC_billing_account=<ACCOUNT>
 #PBS -j oe
+#PBS -W depend=afterok:<DEPENDENCY>
 #PBS -l EC_ecfs=1
 #PBS -o log/bckp_<EXPID>_<LEG>.out
 ##PBS -l walltime=24:00:00
@@ -14,6 +15,8 @@
  #######################################################################
  # Notes:                                                              #
  # - safely restart where it stops if crashes. Just resubmit.          #
+ # - when moving hiresclim2 output, only the tarballs are deleted from #
+ #    the $SCRATCH, the files being are still left behind.             #
  #######################################################################
 
 set -e
@@ -30,15 +33,15 @@ leg=<LEG>
 tar_restart=1
 
 # -- set to 0 if you want to ignore these data
-do_restart=0
-do_ifs_output=0
-do_nemo_output=0
-do_tm5_output=0
+do_restart=1
+do_ifs_output=1
+do_nemo_output=1
+do_tm5_output=1
 
 # The following only ONCE (i.e no loop over that script!)
 #   as a safeguard, it is required to have leg=0 
-do_tm5_restart=1
-do_hiresclim2=1
+do_tm5_restart=0
+do_hiresclim2=0
 do_climato=0
 
 (( leg )) && do_hiresclim2=0
@@ -61,7 +64,7 @@ legnb=$(printf %03d ${leg})
 legnbP1=$(printf %03d ${nextleg})
 
 # -- check for last leg (works as long as code is not still running and processing the last finished leg)
-is_last=1
+is_last=0
 [ -d output/ifs/${legnbP1} ]  && is_last=0
 [ -d output/nemo/${legnbP1} ] && is_last=0
 
