@@ -1,0 +1,74 @@
+#! /usr/bin/env bash
+
+#PBS -N rtrv_<EXPID>_<LEG>
+#PBS -q np
+#PBS -l EC_total_tasks=36
+#PBS -l EC_threads_per_task=1
+#PBS -l EC_billing_account=<ACCOUNT>
+#PBS -l EC_ecfs=36
+#PBS -j oe
+#PBS -W depend=afterok:<DEPENDENCY>
+#PBS -o log/rtrv_<EXPID>_<LEG>.out
+
+ #######################################################################
+ # RETRIEVES output/restart from ECFS.                                 #
+ # Two inputs, EXP and LEG number. Here, we have a template so sed it. #
+ #######################################################################
+
+set -e
+
+cd $PBS_O_WORKDIR
+
+############################# To be sed #############################
+exp=<EXPID>
+leg=<LEG>
+
+######################### Hardcoded options ###########################
+#### may need to be adapted according to options used during backup ###
+tar_restart=1
+
+# models to consider for restart and output (include oasis if needed)
+rst_models="<RSTMODELS>"
+out_models="<OUTMODELS>"
+
+k3d=$(printf %03d ${leg})
+
+for model in ${out_models}
+do
+    mkdir -p /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    
+    echo "*II* getting output ${k3d} of ${model}"
+
+    if [[ $model = tm5 ]] 
+    then
+        ( cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}
+            ecp ec:/nm6/ECEARTH-RUNS/${exp}/output.${model}.${k3d}.tar output.${model}.${k3d}.tar
+            tar -xf output.${model}.${k3d}.tar ) &
+    else
+        for f in $(els ec:/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d})
+        do
+            ( ecp ec:/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}/${f} ${f} 
+                [[ $f =~ .*gz$ ]] && gunzip $f ) &
+        done
+        wait
+    fi
+done
+wait
+
+for model in ${rst_models}
+do
+    mkdir -p /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    
+    echo "*II* getting restart ${k3d} of ${model}"
+    
+    {
+        ecp ec:/nm6/ECEARTH-RUNS/${exp}/restart.${model}.${legnb}.tar restart.${model}.${legnb}.tar 
+        tar -xvf restart.${model}.${legnb}.tar
+    } &
+
+done
+wait
+
+echo " *II* SUCCESS ${exp} ${leg}"

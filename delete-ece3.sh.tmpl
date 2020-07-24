@@ -1,0 +1,39 @@
+#! /usr/bin/env bash
+
+#PBS -N del_<EXPID>_<LEG>
+#PBS -q ns
+#PBS -l EC_billing_account=<ACCOUNT>
+#PBS -j oe
+#PBS -W depend=afterok:<DEPENDENCY>
+#PBS -o log/del_<EXPID>_<LEG>.out
+
+ #######################################
+ # REMOVE local output                 #
+ # Two inputs, EXP and LEG number.     #
+ # Here, we have a template so sed it. #
+ #######################################
+
+set -e
+
+cd $PBS_O_WORKDIR
+
+############################# To be sed #############################
+exp=<EXPID>
+leg=<LEG>
+
+######################### Hardcoded options ###########################
+out_models="<OUTMODELS>"
+
+k3d=$(printf %03d ${leg})
+
+for model in ${out_models}
+do
+    [[ ! -d /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model} ]] && continue
+    cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    for f in *
+    do
+        [[ -f $f ]] && rm -f $f
+    done
+done
+
+echo " *II* SUCCESS ${exp} ${leg}"
