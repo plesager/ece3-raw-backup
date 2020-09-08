@@ -5,7 +5,7 @@
 #PBS -l EC_billing_account=<ACCOUNT>
 #PBS -j oe
 #PBS -W depend=afterok:<DEPENDENCY>
-#PBS -o log/del_<EXPID>_<LEG>.out
+#PBS -o log/odel_<EXPID>_<LEG>.out
 
  #######################################
  # REMOVE local output                 #
@@ -30,6 +30,7 @@ for model in ${out_models}
 do
     [[ ! -d /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model} ]] && continue
     cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    pwd
     for f in *
     do
         [[ -f $f ]] && rm -f $f

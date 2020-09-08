@@ -77,7 +77,10 @@ echo " *II* all restart: $do_restart"
 echo " *II*  ifs output: $do_ifs_output"
 echo " *II* nemo output: $do_nemo_output"
 echo " *II*  tm5 output: $do_tm5_output"
-echo " *II*  hiresclim2: $do_hiresclim2"
+echo " *II*"
+echo " *II* Special:"
+echo " *II*    hiresclim2: $do_hiresclim2"
+echo " *II*   tm5_restart: $do_tm5_restart"
 
 ##############
 # Utilities  #
@@ -276,7 +279,7 @@ then
     # --- archives of 35 files is fine
     tm5grp=35
 
-    ff=($(ls restart/tm5/*))
+    ff=( $(find restart/tm5 -type f | sort) )
     nb=${#ff[@]}
     nn=$(( nb / tm5grp + 1 ))
     echo
@@ -288,8 +291,8 @@ then
         nf=$tm5grp
         ie=$(( (k+1) * tm5grp - 1))
         (( ie > (nb-1) )) && ie=$((nb-1)) && nf=$(( ie - is + 1 ))
-        d1=$(echo ${ff[$is]} | sed -nr "s|restart/tm5/TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
-        d2=$(echo ${ff[$ie]} | sed -nr "s|restart/tm5/TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+        d1=$(echo ${ff[$is]} | sed -nr "s|restart/tm5.*TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+        d2=$(echo ${ff[$ie]} | sed -nr "s|restart/tm5.*TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
         f=tm5-restart-${d1}-${d2}.tar
         echo " archive: $f"
         tar -cvf $f ${ff[*]:${is}:${nf}}

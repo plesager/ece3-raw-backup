@@ -1,11 +1,10 @@
 #! /usr/bin/env bash
 
 #PBS -N rtrv_<EXPID>_<LEG>
-#PBS -q np
-#PBS -l EC_total_tasks=36
-#PBS -l EC_threads_per_task=1
+#PBS -q nf
+#PBS -l EC_total_tasks=18
 #PBS -l EC_billing_account=<ACCOUNT>
-#PBS -l EC_ecfs=36
+#PBS -l EC_ecfs=18
 #PBS -j oe
 #PBS -W depend=afterok:<DEPENDENCY>
 #PBS -o log/rtrv_<EXPID>_<LEG>.out
@@ -44,7 +43,8 @@ do
     then
         ( cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}
             ecp ec:/nm6/ECEARTH-RUNS/${exp}/output.${model}.${k3d}.tar output.${model}.${k3d}.tar
-            tar -xf output.${model}.${k3d}.tar ) &
+            tar -xf output.${model}.${k3d}.tar 
+            rm -f output.${model}.${k3d}.tar ) &
     else
         for f in $(els ec:/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d})
         do
