@@ -16,7 +16,7 @@
  # Notes:                                                              #
  # - safely restart where it stops if crashes. Just resubmit.          #
  # - when moving hiresclim2 output, only the tarballs are deleted from #
- #    the $SCRATCH, the files being are still left behind.             #
+ #    the $SCRATCH, the files being packed remain in place.            #
  #######################################################################
 
 set -e
@@ -29,23 +29,36 @@ exp=<EXPID>
 leg=<LEG>
 
 ######################### Hardcoded options #########################
-
 tar_restart=1
 
-# -- set to 0 if you want to ignore these data
-do_restart=1
-do_ifs_output=1
-do_nemo_output=1
-do_tm5_output=1
+if (( leg ))
+then 
+    # -- set to 0 if you want to ignore these data
+    do_restart=1
+    do_ifs_output=1
+    do_nemo_output=1
+    do_tm5_output=1
 
-# The following only ONCE (i.e no loop over that script!)
-#   as a safeguard, it is required to have leg=0 
-do_tm5_restart=0
-do_hiresclim2=0
-do_climato=0
+    # -- do not change
+    do_tm5_restart=0
+    do_hiresclim2=0
+    do_climato=0
+    do_log=0
+else
+    # The following only ONCE (i.e no loop over that script!)
+    #   as a safeguard, it is required to have leg=0 
+    # -- set to 0 if you want to ignore these data
+    do_tm5_restart=1
+    do_hiresclim2=0
+    do_climato=0
+    do_log=1
 
-(( leg )) && do_hiresclim2=0
-(( leg )) && do_tm5_restart=0
+    # -- do not change
+    do_restart=0
+    do_ifs_output=0
+    do_nemo_output=0
+    do_tm5_output=0
+fi
 
 # Group Hiresclim output: number of years to bundle in one archive (roughly 5
 # for hires, 20 for low res)
@@ -65,18 +78,19 @@ legnbP1=$(printf %03d ${nextleg})
 
 # -- check for last leg (works as long as code is not still running and processing the last finished leg)
 is_last=0
-[ -d output/ifs/${legnbP1} ]  && is_last=0
-[ -d output/nemo/${legnbP1} ] && is_last=0
-
-do_log=${is_last}               # pack all logs when doing last leg
+##PLS not robust enough[ -d output/ifs/${legnbP1} ]  && is_last=0
+##PLS not robust enough[ -d output/nemo/${legnbP1} ] && is_last=0
+##PLS not robust enough
+##PLS not robust enoughdo_log=${is_last}               # pack all logs when doing last leg
 
 # -- summary
 echo " *II* processing leg $legnb"
 (( is_last )) && echo " *II* LAST LEG ASSUMED"
-echo " *II* all restart: $do_restart"
-echo " *II*  ifs output: $do_ifs_output"
-echo " *II* nemo output: $do_nemo_output"
-echo " *II*  tm5 output: $do_tm5_output"
+echo " *II* Regular:"
+echo " *II*  all restart: $do_restart"
+echo " *II*   ifs output: $do_ifs_output"
+echo " *II*  nemo output: $do_nemo_output"
+echo " *II*   tm5 output: $do_tm5_output"
 echo " *II*"
 echo " *II* Special:"
 echo " *II*    hiresclim2: $do_hiresclim2"
@@ -121,7 +135,7 @@ if (( do_restart ))
 then
     if $(not_empty_dir restart/ifs/${legnbP1}) || (( is_last ))
     then
-        echo; echo " *** IFS RESTART ${legnbP1} ***"; echo
+        echo; echo " *II* IFS RESTART ${legnbP1} ***"; echo
 
         if (( ! tar_restart ))
         then 
@@ -163,56 +177,53 @@ then
         fi
     fi
  
-    if [[ -f nemo.exe.lnk ]]
+    if $(not_empty_dir restart/nemo/${legnbP1}) || (( is_last ))
     then
-        if $(not_empty_dir restart/nemo/${legnbP1}) || (( is_last ))
+        echo; echo " *II* NEMO RESTART ${legnbP1} ***"; echo
+
+        if (( ! tar_restart ))
+        then 
+            emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
+            echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
+        fi
+
+        if (( is_last ))
         then
-            echo; echo " *** NEMO RESTART ${legnbP1} ***"; echo
-
-            if (( ! tar_restart ))
+            if (( tar_restart ))
             then 
-                emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
-                echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
+                f=restart.nemo.${legnbP1}.tar
+                tar -cf $f ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
+                split_move $f
+            else
+                for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
+                do
+                    if [[ -f $f ]]; then
+                        emv -e $f ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                        echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                    fi
+                done
             fi
-
-            if (( is_last ))
-            then
-                if (( tar_restart ))
-                then 
-                    f=restart.nemo.${legnbP1}.tar
-                    tar -cf $f ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
-                    split_move $f
-                else
-                    for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
-                    do
-                        if [[ -f $f ]]; then
-                            emv -e $f ${ecfs_dir}/restart/nemo/${legnbP1}/$f
-                            echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
-                        fi
-                    done
-                fi
-            else            
-                if (( tar_restart ))
-                then 
+        else            
+            if (( tar_restart ))
+            then 
                 # need to check if remote exists to trap cases of crash after
                 # 'split_move' and before end of '\rm -f', for now let the script stop
-                    f=$(echo restart/nemo/${legnbP1} | sed "s|/|.|g").tar
-                    tar -cf $f restart/nemo/${legnbP1}
-                    split_move $f
-                    \rm -f restart/nemo/${legnbP1}/*                   
-                else
-                    for f in restart/nemo/${legnbP1}/*
-                    do
-                        [[ -f $f ]] && split_move $f
-                    done        
-                fi
+                f=$(echo restart/nemo/${legnbP1} | sed "s|/|.|g").tar
+                tar -cf $f restart/nemo/${legnbP1}
+                split_move $f
+                \rm -f restart/nemo/${legnbP1}/*                   
+            else
+                for f in restart/nemo/${legnbP1}/*
+                do
+                    [[ -f $f ]] && split_move $f
+                done        
             fi
         fi
     fi
 
     if not_empty_dir restart/oasis/${legnbP1}
     then
-        echo; echo " *** OASIS RESTART ${legnbP1} ***"; echo
+        echo; echo " *II* OASIS RESTART ${legnbP1} ***"; echo
 
         if (( tar_restart ))
         then 
@@ -239,7 +250,7 @@ fi
 ###############
 if (( do_nemo_output )) && not_empty_dir output/nemo/${legnb}
 then
-    echo; echo " *** NEMO OUTPUT ${legnb} ***"; echo
+    echo; echo " *II* NEMO OUTPUT ${legnb} ***"; echo
 
     emkdir -p ${ecfs_dir}/output/nemo/${legnb}
     echmod 755 ${ecfs_dir}/output/nemo/${legnb}
@@ -261,7 +272,7 @@ fi
 ##########################
 if (( do_tm5_output )) && not_empty_dir output/tm5/${legnb}
 then
-    echo; echo " *** TM5 OUTPUT ${legnb} ***"; echo
+    echo; echo " *II* TM5 OUTPUT ${legnb} ***"; echo
 
     f=$(echo output/tm5/${legnb} | sed "s|/|.|g").tar
     tar -cf $f output/tm5/${legnb}
@@ -272,7 +283,7 @@ fi
 
 if (( do_tm5_restart )) && not_empty_dir restart/tm5
 then
-    echo; echo " *** TM5 restart ***"; echo
+    echo; echo " *II* TM5 restart ***"; echo
     emkdir -p ${ecfs_dir}/restart/tm5
     echmod 755 ${ecfs_dir}/restart/tm5
 
@@ -307,7 +318,7 @@ fi
 ##############
 if (( do_ifs_output )) && not_empty_dir output/ifs/${legnb}
 then
-    echo; echo " *** IFS OUTPUT ${legnb} ***"; echo
+    echo; echo " *II* IFS OUTPUT ${legnb} ***"; echo
 
     emkdir -p ${ecfs_dir}/output/ifs/${legnb}
     echmod 755 ${ecfs_dir}/output/ifs/${legnb}
@@ -336,7 +347,7 @@ fi
 ############################
 if (( do_climato )) && not_empty_dir post
 then
-    echo; echo " *** CLIMATO ***"; echo
+    echo; echo " *II* CLIMATO ***"; echo
 
     # -- 730M/period (AMIP)
     for k in post/clim*
@@ -358,7 +369,7 @@ fi
 #########################
 if (( do_hiresclim2 )) && not_empty_dir post/mon
 then
-    echo; echo " *** HIRESCLIM2 ***"; echo
+    echo; echo " *II* HIRESCLIM2 ***"; echo
 
     # --- group 20 (use 7 for coupled HiRes) years together
 
@@ -390,7 +401,7 @@ fi
 #######
 if (( do_log ))
 then
-    echo; echo " *** LOG ***"; echo
+    echo; echo " *II* LOG ***"; echo
     f=log.${exp}.upto.${legnb}.tar.gz
     tar -cvzf $f log
     split_move $f
