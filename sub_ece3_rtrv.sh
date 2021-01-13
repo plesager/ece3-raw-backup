@@ -3,12 +3,13 @@
 usage() {
     cat << EOT >&2
  Usage:
-        ${0##*/} [-a account] [-c] [-o MODEL1 -o MODEL2 ...] EXP LEG
+        ${0##*/} [-a account] [-c] [-o MODEL1 -o MODEL2 ...] [-r MODEL1 -r MODEL2 ...] EXP LEG
 
  Submit a job to retrieve output/restart from ONE leg of an experiment
  
  Options are:
-    -o model    : an EC-Earth3 component for which output should be retrieve
+    -r model    : an EC-Earth3 component for which restart should be retrieved
+    -o model    : an EC-Earth3 component for which output should be retrieved
     -a account  : specify a different special project for accounting (default ${ECE3_POSTPROC_ACCOUNT:-DEFAULT})
     -c          : check for success of previously submitted script
     -l          : page the log files of previously submitted script with a '${PAGER:-less} <log>' command
@@ -23,14 +24,17 @@ set -e
 account=$ECE3_POSTPROC_ACCOUNT
 dependency=
 omodels=
+rmodels=
 
-while getopts "h?o:cd:a:" opt; do
+while getopts "h?o:r:cd:a:" opt; do
     case "$opt" in
         h|\?)
             usage
             exit 0
             ;;
         o)  omodels="$OPTARG $omodels"
+            ;;
+        r)  rmodels="$OPTARG $omodels"
             ;;
         a)  account=$OPTARG
             ;;

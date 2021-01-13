@@ -58,15 +58,20 @@ wait
 
 for model in ${rst_models}
 do
-    mkdir -p /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
-    cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/output/${model}/${k3d}
+    mkdir -p /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}/restart/${model}/${k3d}
+    cd /scratch/ms/nl/nm6/ECEARTH-RUNS/${exp}
     
     echo "*II* getting restart ${k3d} of ${model}"
-    
-    {
-        ecp ec:/nm6/ECEARTH-RUNS/${exp}/restart.${model}.${legnb}.tar restart.${model}.${legnb}.tar 
-        tar -xvf restart.${model}.${legnb}.tar
-    } &
+
+    if [[ $model != tm5 ]] 
+    then
+        {
+            ecp ec:/nm6/ECEARTH-RUNS/${exp}/restart.${model}.${legnb}.tar restart.${model}.${legnb}.tar 
+            tar -xvf restart.${model}.${legnb}.tar
+        } &
+    else
+        echo "*EE* TM5 restart should be retrieved manually (only few files)"
+    fi
 
 done
 wait
