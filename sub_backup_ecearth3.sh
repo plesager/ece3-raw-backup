@@ -8,9 +8,10 @@
  #      - 1st argument: experiment ID                                  #
  #      - 2nd argument: leg                                            #
  #         For leg:                                                    #
- #             - use leg number e.g., 001, 015 etc. to bckp restarts   #
+ #             - use leg number without zero-padding                   #
+ #		 e.g., 1, 15 etc. to bckp restarts  	       	       #
  #               and raw output                                        #
- #             - use 000 as leg number to backup EXP log files and     #
+ #             - use 0 as leg number to backup EXP log files and       #
  #               tm5 restarts                                          #
  # - Account can be changed below                                      #
  # - Dependency can be changed below                                   #
