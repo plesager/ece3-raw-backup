@@ -440,7 +440,7 @@ else
   echo '   1st argument: experiment ID'
   echo '   2nd argument: leg without zero-padding'
   echo '  For instance:'
-  echo '   sbatch  --job-name=bckp_EXP1_001 ' $0 ' EXP1 1'
+  echo '   sbatch  --job-name=bckp_EXP1_1 ' $0 ' EXP1 1'
   echo '  Or use:'
   echo '   for exp in EXP1; do for leg in {0..15}; do sbatch --job-name=bckp_${exp}_${leg}  ' $0 ' ${exp}  ${leg}; done; done'
   echo
