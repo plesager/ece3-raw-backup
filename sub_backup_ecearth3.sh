@@ -29,7 +29,6 @@ DEPENDENCY=
 # SBATCH --qos=nf
 # SBATCH --account=<ACCOUNT>
 # SBATCH --depend=afterok:<DEPENDENCY>
-#### SBATCH --output log/bckp_<exp>_<leg>.out
 # SBATCH --time=24:00:00
 
 
@@ -440,8 +439,8 @@ else
   echo '   1st argument: experiment ID'
   echo '   2nd argument: leg without zero-padding'
   echo '  For instance:'
-  echo '   sbatch  --job-name=bckp_EXP1_1 ' $0 ' EXP1 1'
+  echo '   sbatch  --job-name=bckp_EXP1_1 --output=bckp_EXP1_1.out ' $0 ' EXP1 1'
   echo '  Or use:'
-  echo '   for exp in EXP1; do for leg in {0..15}; do sbatch --job-name=bckp_${exp}_${leg}  ' $0 ' ${exp}  ${leg}; done; done'
+  echo '   for exp in EXP1; do for leg in {0..15}; do sbatch --job-name=bckp_${exp}_${leg} --output=bckp_${exp}_${leg}.out  ' $0 ' ${exp}  ${leg}; done; done'
   echo
 fi
