@@ -1,91 +1,109 @@
 * EC-EARTH3 BACKUP TOOLS
 ** PURPOSE
-   To move output, restart and post-processed (hiresclim2, ECmean climatology)
-   data from an EC-EARTH experiment to ECFS tape archive.  Output and restart
-   data are moved and not just copied, since one of the goal is to free
-   space - particularly with long and/or high resolution runs, since we only
-   have about 30TB on the scratch.
+To move output, restart and post-processed (hiresclim2, ECmean
+climatology) data from an EC-EARTH experiment to the ECFS tape
+archive. Output and restart data are *moved* and not just copied,
+since one of the goals is to free space - particularly with long
+and/or high resolution runs.
 
-   Utilities to retrieve and/or clean the ECFS archive, and a couple of simple
-   manipulations of the raw output are also available.
+Utilities to retrieve and/or clean the ECFS archive, and a couple of
+simple manipulations of the raw output are also available.
 
 ** HOW-TO ARCHIVE
-   The /sub_ece3_bckp.sh/ script parses a template to create and submit
-   another script. The arguments of the script are the 4-letter experiment id
-   and the leg number to backup.
+The /backup_ece3.sh/ script should be submitted with sbatch
+(or srun). It takes two arguments: the 4-letter experiment id and the
+leg number to backup.
 
-   An example call. For moving output from the 3rd leg of experiment aGez:
-   : sub_ece3_bckp.sh aGez 3
+An example call for moving output/restart from the 3rd leg of the aGez
+experiment:
+: sbatch backup_ece3.sh aGez 3
 
-   You can process several legs at once with a simple loop:
-   : for k in {36..45}; do sub_ece3_bckp.sh ph01 ${k}; done  
+Note that the restarts written at the end of the leg are backed up. Be
+sure that they are not needed anymore before submitting the backup
+script!
 
-   Few options are still hardcoded in the template
-   (/backup_ecearth3.sh.tmpl/). See the *hardcoded options* section at the top
-   of the template, where you must set the correct top directory of your
-   EC-Earth experiments and the ECFS path where to move the data.
+You can process several legs at once with a simple loop. See examples
+by calling the script without any argument:
+: ./backup_ece3.sh
 
-   By default all existing output (IFS, NEMO) and restart (IFS, NEMO, OASIS)
-   are put on tape. But you can skip output or restart with the switches in
-   the *hardcoded options* section.
+Few options are still hardcoded in the script. See the *hardcoded
+options* section at the top. You must set the correct top directory of
+your EC-Earth3 experiments and the ECFS path where to move the data
+(look for "IN & OUT top dirs"). By default all existing output (IFS,
+NEMO, TM5) and restart (IFS, NEMO, OASIS) are put on tape if they
+exist. You probably do not need to change this, but you can skip some
+output or restart with the switches in the *hardcoded options*
+section. Note the special case of leg 0, which makes a tarball of
+several TM5 restarts and model logs over all legs.
+
+The following SLURM options can be useful. You set them either when
+calling /sbatch/ or add them to the backup script with a #SBATCH
+directive:
 
 *** Log
-    The created script and its log  are found in the $SCRATCH/tmp_ece3_bckp dir.
+The default setup in the script is /bckp.%j.out/ where %j will be
+replaced by the jobid. This can be overwritten at the command line.
+For example:
+: sbatch --output=bckp-aGez-003.out backup_ece3.sh aGez 3
+If a directory is specified, be sure that it exists before submitting.
 
 *** HPC account
-    Normally, your default ECMWF account is used (i.e. 1st one in the list you
-    get with "account -l $USER" on ecgate). You can use another one by either
-    setting (in your ~/.user_bashrc or ~/.bashrc or similar):
-
-    : export ECE3_POSTPROC_ACCOUNT=<hpc account to use>
-
-    or, for something more temporary, by using the -a option at the command
-    line when calling the /sub_ece3_bckp.sh/ script. 
+Your default ECMWF account (namely $EC_billing_account) is used,
+unless you specify another one at the command line. For example:
+: sbatch --account=spnldrij backup_ece3.sh aGez 3
 
 *** Requested walltime
-    The template has a walltime PBSpro directive. You can just remove it, or
-    set it to a small value to reduce queueing time. Here are some estimates,
-    but keep in mind that ECFS can be very slow at times.
+The script sets a walltime of 6h (currently the default for the nf
+queue). You can overwrite it with the /--time/ option:
+: sbatch --time=00:30:00 backup_ece3.sh aGez 3
+By using a small value you can reduce queue time. Here are some
+estimates ([TODO] update for the new hardware in Bologna), but keep in
+mind that ECFS can be very slow at times.
 
 **** AMIP, Primavera output
-     - 3hr  is enough for standard resolution
-     - 12hr is needed for the high resolution
+- 3hr  is enough for standard resolution
+- 12hr is needed for the high resolution
      
 **** CMIP, trunk output for IFS, Primavera output for NEMO
-     - 5hr for high resolution
+- 5hr for high resolution
+
+*** Other useful options
+You can set the name of your job with /--job-name=name/. If waiting
+for another job to finish successfully before submitting the backup
+script, you can set a conditional dependency with
+/--depend=afterok:jobid/.
 
 ** HOW-TO RECOVER
-   The /get_clean_ecfs.jb/ script let you retrieve restart files for a
-   particular leg for quick and easy rerun. Retrieving output is not available
-   but could be easily implemented. However option to "move to trash" and
-   "empty trash" are available: this is to clean up an archive (if buggy from
-   some leg or not needed anymore).
-
+The /get_clean_ecfs.jb/ script let you retrieve restart files for a
+particular leg for quick and easy rerun. Retrieving output is not
+available but could be easily implemented. However option to "move to
+trash" and "empty trash" are available: this is to clean up an archive
+(if buggy from some leg or not needed anymore).
 
 ** ARCHIVE
-   Output data are zipped (except ICMSH), restarts and postprocessed data are
-   tar and zipped. They all end up in the archive (hardcoded option):
-   : ec:/${USER}/ECEARTH-RUNS/${exp}
+Output data are zipped (except ICMSH), restarts and postprocessed data are
+tar and zipped. They all end up in the archive (hardcoded option):
+: ec:/${USER}/ECEARTH-RUNS/${exp}
 
-   Note that large files (>32G) are split into two or more pieces.
-
+Note that large files (>32G) are split into two or more pieces.
 
 ** IMPORTANT
-   You should not submit a job for the last terminated leg if the experiment is
-   *still* running. Not only you probably need the output for some
-   post processing (ece2cmor3 for example), but the script will think that you
-   are storing data from the last leg, and will remove the restart files in the
-   rundir too early.
-  
+You should not submit a job for the last terminated leg if the
+experiment is *still* running. Not only you probably need the output
+for some post processing (ece2cmor3 for example), but the script will
+think that you are storing data from the last leg, and will remove the
+restart files in the rundir too early.
+
 ** Utilities
-   There are a few other scripts that can be useful. They all have few
-   hardcoded settings at the top (typically the top directory of your
-   EC-Earth experiments):
-   - /extract_var.sh/: easily extract a variable from the IFS raw output
-   - /check_bckp.sh/ : list the dirs that are not empty, and give their size.
-   - /split_2y.sh/ : to copy data from an experiment with 2-year legs to a new
-     one with 1-year legs, and a new name if needed.
-   - /rebuild_bckp.sh/ : to rebuild large files that have been split into 2 or
-     more pieces when being backed up. Useful when retrieving files from
-     tapes for additional work. 
+There are a few other scripts that can be useful. They all have few
+hardcoded settings at the top (typically the top directory of your
+EC-Earth experiments):
+- /extract_var.sh/: easily extract a variable from the IFS raw output
+- /check_bckp.sh/ : list the dirs that are not empty, and give their
+  size.
+- /split_2y.sh/ : to copy data from an experiment with 2-year legs to
+  a new one with 1-year legs, and a new name if needed.
+- /rebuild_bckp.sh/ : to rebuild large files that have been split into
+  2 or more pieces when being backed up. Useful when retrieving files
+  from tapes for additional work.
 
