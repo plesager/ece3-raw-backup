@@ -19,7 +19,10 @@ EXAMPLES (they assume that the directory specified with the --output option exis
   or for several legs:
 
     exp=aeGz
-    for i in {1..4}; do mess=\${exp}-\$(printf %03d \$i); sbatch --output=log/\${mess}.out --job-name=\$mess $(basename $0) \${exp} \$i; done
+    for i in {1..4}; do mess=\${exp}-\$(printf %03d \$i); sbatch -o log/\${mess}.out -J \$mess $(basename $0) \${exp} \$i; done
+
+    this variant will do the same:
+    for i in {001..004}; do mess=\${exp}-\$i; sbatch -o log/\${mess}.out -J \$mess $(basename $0) \${exp} \$i; done
 
 EOT
 }
@@ -46,7 +49,7 @@ if [[ ! $2 =~ ^[0-9]+$ ]]; then
 fi
 
 exp=$1
-leg=$2
+leg=$((10#$2))
 
 ######################### Hardcoded options #########################
 tar_restart=1
@@ -98,8 +101,8 @@ ecfs_dir="ec:/${USER}/ECEARTH-RUNS/${exp}"
 cd ${runs_dir}/${exp}
 
 nextleg=$(( leg + 1 ))
-legnb=$(printf %03d ${leg})
-legnbP1=$(printf %03d ${nextleg})
+legnb=$(printf "%03d" ${leg})
+legnbP1=$(printf "%03d" ${nextleg})
 
 # -- check for last leg (works as long as EC-Earth3 is not running and processing the last finished leg)
 is_last=0
