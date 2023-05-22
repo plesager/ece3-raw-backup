@@ -73,13 +73,6 @@ for another job to finish successfully before submitting the backup
 script, you can set a conditional dependency with
 /--depend=afterok:jobid/.
 
-** HOW-TO RECOVER
-The /get_clean_ecfs.jb/ script let you retrieve restart files for a
-particular leg for quick and easy rerun. Retrieving output is not
-available but could be easily implemented. However option to "move to
-trash" and "empty trash" are available: this is to clean up an archive
-(if buggy from some leg or not needed anymore).
-
 ** ARCHIVE
 Output data are zipped (except ICMSH), restarts and postprocessed data are
 tar and zipped. They all end up in the archive (hardcoded option):
@@ -87,12 +80,24 @@ tar and zipped. They all end up in the archive (hardcoded option):
 
 Note that large files (>32G) are split into two or more pieces.
 
+** HOW-TO RETRIEVE DATA FROM TAPES
+The /retrieve-ece3.sh/ script let you retrieve restart and/or output
+files for a particular leg. They are put back into their original
+location (directories created if needed), allowing for rerun for
+example. The script works in a very similar was as /backup_ece3.sh/,
+except you have to specify which model you are interested in. For
+example:
+: sbatch -o "ifs nemo" -r oasis retrieve-ece3.sh aGez 3
+will retrieve output from IFS and NEMO, and OASIS restarts, all from
+the 3rd leg of the aGez experiment.
+
 ** IMPORTANT
-You should not submit a job for the last terminated leg if the
-experiment is *still* running. Not only you probably need the output
-for some post processing (ece2cmor3 for example), but the script will
-think that you are storing data from the last leg, and will remove the
-restart files in the rundir too early.
+You should not submit a job for the last *two terminated* legs if the
+experiment is *still* running, or obviously you want to post process
+your data. Remember that output of leg N is complete only when leg N+1
+is finished or if it is the last leg. Remember also that /ece2cmor3/
+requires data from the first leg for all of its IFS processing.
+point].
 
 ** Utilities
 There are a few other scripts that can be useful. They all have few
