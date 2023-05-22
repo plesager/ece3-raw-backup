@@ -19,8 +19,7 @@ EOT
 
 set -e
 
-runs_dir="${SCRATCH}/ECEARTH-RUNS/"
-ecfs_dir="ec:/${USER}/ECEARTH-RUNS/"
+. ./config.cfg 
 
 # -- options
 omodels=

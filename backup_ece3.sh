@@ -51,6 +51,9 @@ fi
 exp=$1
 leg=$((10#$2))
 
+. ./config.cfg
+archive=${ecfs_dir}/${exp}
+
 ######################### Hardcoded options #########################
 tar_restart=1
 
@@ -91,10 +94,6 @@ fi
 # for hires, 20 for low res)
 group=20
 
-# IN & OUT top dirs
-runs_dir="${SCRATCH}/ecearth3"
-ecfs_dir="ec:/${USER}/ECEARTH-RUNS/${exp}"
-
 ###################### End Hardcoded Options ########################
 
 # All commands to be executed from the run top directory
@@ -128,8 +127,8 @@ echo " *II*   tm5_restart: $do_tm5_restart"
 # Utilities  #
 ##############
 bckp_emcp () {
-    emv -e $1  ${ecfs_dir}/$1
-    echmod 444 ${ecfs_dir}/$1
+    emv -e $1  ${archive}/$1
+    echmod 444 ${archive}/$1
 }
 
 maxsize=34359738368             # limit in bytes for emv as of October 2017 (32GB)
@@ -167,8 +166,8 @@ then
 
         if (( ! tar_restart ))
         then
-            emkdir -p ${ecfs_dir}/restart/ifs/${legnbP1}
-            echmod 755 ${ecfs_dir}/restart/ifs/${legnbP1}
+            emkdir -p ${archive}/restart/ifs/${legnbP1}
+            echmod 755 ${archive}/restart/ifs/${legnbP1}
         fi
 
         if (( is_last ))
@@ -182,8 +181,8 @@ then
                 for f in srf* ece.info rcf
                 do
                     if [[ -f $f ]]; then
-                        emv -e $f ${ecfs_dir}/restart/ifs/${legnbP1}/$f
-                        echmod 444 ${ecfs_dir}/restart/ifs/${legnbP1}/$f
+                        emv -e $f ${archive}/restart/ifs/${legnbP1}/$f
+                        echmod 444 ${archive}/restart/ifs/${legnbP1}/$f
                     fi
                 done
             fi
@@ -211,8 +210,8 @@ then
 
         if (( ! tar_restart ))
         then 
-            emkdir -p ${ecfs_dir}/restart/nemo/${legnbP1}
-            echmod 755 ${ecfs_dir}/restart/nemo/${legnbP1}
+            emkdir -p ${archive}/restart/nemo/${legnbP1}
+            echmod 755 ${archive}/restart/nemo/${legnbP1}
         fi
 
         if (( is_last ))
@@ -226,8 +225,8 @@ then
                 for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
                 do
                     if [[ -f $f ]]; then
-                        emv -e $f ${ecfs_dir}/restart/nemo/${legnbP1}/$f
-                        echmod 444 ${ecfs_dir}/restart/nemo/${legnbP1}/$f
+                        emv -e $f ${archive}/restart/nemo/${legnbP1}/$f
+                        echmod 444 ${archive}/restart/nemo/${legnbP1}/$f
                     fi
                 done
             fi
@@ -262,8 +261,8 @@ then
             split_move $f
             \rm -f restart/oasis/${legnbP1}/*
         else
-            emkdir -p ${ecfs_dir}/restart/oasis/${legnbP1}
-            echmod 755 ${ecfs_dir}/restart/oasis/${legnbP1}
+            emkdir -p ${archive}/restart/oasis/${legnbP1}
+            echmod 755 ${archive}/restart/oasis/${legnbP1}
 
             for f in restart/oasis/${legnbP1}/*
             do
@@ -280,8 +279,8 @@ if (( do_nemo_output )) && not_empty_dir output/nemo/${legnb}
 then
     echo; echo " *II* NEMO OUTPUT ${legnb} ***"; echo
 
-    emkdir -p ${ecfs_dir}/output/nemo/${legnb}
-    echmod 755 ${ecfs_dir}/output/nemo/${legnb}
+    emkdir -p ${archive}/output/nemo/${legnb}
+    echmod 755 ${archive}/output/nemo/${legnb}
 
     for ff in output/nemo/${legnb}/*
     do
@@ -312,8 +311,8 @@ fi
 if (( do_tm5_restart )) && not_empty_dir restart/tm5
 then
     echo; echo " *II* TM5 restart ***"; echo
-    emkdir -p ${ecfs_dir}/restart/tm5
-    echmod 755 ${ecfs_dir}/restart/tm5
+    emkdir -p ${archive}/restart/tm5
+    echmod 755 ${archive}/restart/tm5
 
     # --- archives of 35 files is fine
     tm5grp=35
@@ -348,8 +347,8 @@ if (( do_ifs_output )) && not_empty_dir output/ifs/${legnb}
 then
     echo; echo " *II* IFS OUTPUT ${legnb} ***"; echo
 
-    emkdir -p ${ecfs_dir}/output/ifs/${legnb}
-    echmod 755 ${ecfs_dir}/output/ifs/${legnb}
+    emkdir -p ${archive}/output/ifs/${legnb}
+    echmod 755 ${archive}/output/ifs/${legnb}
 
     for f in output/ifs/${legnb}/*   # only GG not SH files are worth zipping
     do        

@@ -9,6 +9,11 @@ and/or high resolution runs.
 Utilities to retrieve and/or clean the ECFS archive, and a couple of
 simple manipulations of the raw output are also available.
 
+** Setup
+You must set the correct top directory of your EC-Earth3 experiments
+and the ECFS path where to move the data in the /config.cfg /file.
+This setup is used for all the tools.
+
 ** HOW-TO ARCHIVE
 The /backup_ece3.sh/ script should be submitted with sbatch
 (or srun). It takes two arguments: the 4-letter experiment id and the
@@ -27,9 +32,7 @@ by calling the script without any argument:
 : ./backup_ece3.sh
 
 Few options are still hardcoded in the script. See the *hardcoded
-options* section at the top. You must set the correct top directory of
-your EC-Earth3 experiments and the ECFS path where to move the data
-(look for "IN & OUT top dirs"). By default all existing output (IFS,
+options* section at the top. By default all components output (IFS,
 NEMO, TM5) and restart (IFS, NEMO, OASIS) are put on tape if they
 exist. You probably do not need to change this, but you can skip some
 output or restart with the switches in the *hardcoded options*
