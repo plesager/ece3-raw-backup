@@ -131,7 +131,8 @@ bckp_emcp () {
     echmod 444 ${archive}/$1
 }
 
-maxsize=34359738368             # limit in bytes for emv as of October 2017 (32GB)
+#maxsize=34359738368             # limit in bytes for emv as of October 2017 - cca (32GB)
+maxsize=137438953472             # limit in bytes for emv as of October 2023 - hpc2020 (137GB)
 
 split_move () {
     # split if larger than what emv can handle (34359738368 bytes)
