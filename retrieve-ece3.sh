@@ -2,28 +2,25 @@
 
 #SBATCH --qos=nf
 #SBATCH --ntasks=24
-#SBATCH --output=rtrv.%j.out
+#SBATCH --output=log/rtrv.%j.out
 #SBATCH --time=06:00:00
-
- #######################################
- # RETRIEVES output/restart from ECFS. #
- # Two inputs, EXP and LEG number.     #
- #######################################
 
 set -e
 
 usage() {
     cat << EOT >&2
  Usage:
-        [sbatch] ${0##*/} [-c] [-o MODEL1 -o MODEL2 ...] [-r MODEL1 -r MODEL2 ...] EXP LEG
+        [sbatch] ${0##*/} [-c] [-s] [-o MODEL1 -o MODEL2 ...] [-r MODEL1 -r MODEL2 ...] EXP LEG
 
- Submit a job to retrieve output/restart from ONE leg of one experiment
- 
+ Submit a job to retrieve OUTPUT and/or RESTART from ONE leg of one
+ experiment and for any requested components.
+
  Options are:
     -r model    : an EC-Earth3 component for which restart should be retrieved
     -o model    : an EC-Earth3 component for which output should be retrieved
     -c          : check for success of previous retrieval
-    -l          : page the log of previous retrieval with a '${PAGER:-less} <log>' command
+    -s          : silent
+    -l          : page the log of previous retrieval with a '${PAGER:-less} <log>' command 
 
 EOT
 }
@@ -32,28 +29,28 @@ set -eu
 error() { echo "ERROR: $1" >&2; exit 1; }
 urror() { echo "ERROR: $1" >&2; usage; exit 1; }
 
-# -- OPTIONS
+# -- HARDCODED OPTIONS - list of models for which output or restart are requested
 out_models=
-rst_models=
+rst_models="ifs nemo oasis"
+verb=0
 
-while getopts "ho:r:cl" opt; do
-    case "$opt" in
-        h) usage; exit 0 ;;
-        o) out_models="$OPTARG $out_models" ;;
-        r) rst_models="$OPTARG $rst_models" ;;
-        c) chck=1 ;;
-        l) page=1
-        ?) echo "UNKNOWN OPTION"; usage; exit 1
-    esac
-done
-shift $((OPTIND-1))
+# while getopts "ho:r:cl" opt; do
+#     case "$opt" in
+#         h) usage; exit 0 ;;
+#         o) out_models="$OPTARG $out_models" ;;
+#         r) rst_models="$OPTARG $rst_models" ;;
+#         c) chck=1 ;;
+#         l) page=1 ;;
+#         ?) echo "UNKNOWN OPTION"; usage; exit 1
+#     esac
+# done
+# shift $((OPTIND-1))
 
 
 # -- ARG
 [[ "$#" -ne 2 ]] && urror "Need TWO arguments!"
 [[ ! $1 =~ ^[a-Z_0-9]{4}$ ]] && urror "argument EXPERIMENT name (=$1) should be a 4-character string"
 [[ ! $2 =~ ^[0-9]+$ ]] && urror "argument LEG_NUMBER (=$2) should be a number"
-
 
 if [[ -z $out_models && -z $rst_models ]]
 then 
@@ -78,7 +75,7 @@ do
     mkdir -p ${runs_dir}/${exp}/output/${model}/${k3d}
     cd ${runs_dir}/${exp}/output/${model}/${k3d}
     
-    echo "*II* getting output ${k3d} of ${model}"
+    (( verb )) && echo "*II* getting output ${k3d} of ${model}"
 
     if [[ $model = tm5 ]] 
     then
@@ -102,13 +99,13 @@ do
     mkdir -p ${runs_dir}/${exp}/restart/${model}/${k3d}
     cd ${runs_dir}/${exp}
     
-    echo "*II* getting restart ${k3d} of ${model}"
+    (( verb )) && echo "*II* getting restart ${k3d} of ${model}"
 
     if [[ $model != tm5 ]] 
     then
         {
-            ecp ${ecfs_dir}/${exp}/restart.${model}.${legnb}.tar restart.${model}.${legnb}.tar 
-            tar -xvf restart.${model}.${legnb}.tar
+            ecp ${ecfs_dir}/${exp}/restart.${model}.${k3d}.tar restart.${model}.${k3d}.tar 
+            tar -xvf restart.${model}.${k3d}.tar
         } &
     else
         echo "*EE* TM5 restart should be retrieved manually (only few files)"
@@ -117,4 +114,4 @@ do
 done
 wait
 
-echo " *II* SUCCESS ${exp} ${leg}"
+(( verb )) && echo " *II* SUCCESS ${exp} ${leg}"
