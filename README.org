@@ -11,7 +11,7 @@ simple manipulations of the raw output are also available.
 
 ** Setup
 You must set the correct top directory of your EC-Earth3 experiments
-and the ECFS path where to move the data in the /config.cfg /file.
+and the ECFS path where to move the data in the /config.cfg/ file.
 This setup is used for all the tools.
 
 ** HOW-TO ARCHIVE
@@ -78,10 +78,10 @@ script, you can set a conditional dependency with
 
 ** ARCHIVE
 Output data are zipped (except ICMSH), restarts and postprocessed data are
-tar and zipped. They all end up in the archive (hardcoded option):
+tar and zipped. They all end up in the archive (set in /config.cfg/):
 : ec:/${USER}/ECEARTH-RUNS/${exp}
 
-Note that large files (>32G) are split into two or more pieces.
+Note that large files (>137G) are split into two or more pieces.
 
 ** HOW-TO RETRIEVE DATA FROM TAPES
 The /retrieve-ece3.sh/ script let you retrieve restart and/or output
@@ -96,11 +96,10 @@ the 3rd leg of the aGez experiment.
 
 ** IMPORTANT
 You should not submit a job for the last *two terminated* legs if the
-experiment is *still* running, or obviously you want to post process
+experiment is *still* running, or obviously if you want to process
 your data. Remember that output of leg N is complete only when leg N+1
-is finished or if it is the last leg. Remember also that /ece2cmor3/
+is finished unless it is the last leg. Remember also that /ece2cmor3/
 requires data from the first leg for all of its IFS processing.
-point].
 
 ** Utilities
 There are a few other scripts that can be useful. They all have few

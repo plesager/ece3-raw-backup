@@ -3,14 +3,15 @@
 usage() {
     cat << EOT >&2
  Usage:
-        ${0##*/} [-r] [-f NB] [-o MODEL1 -o MODEL2 ...] EXP
+        ${0##*/} [-l] [-r] [-f NB] [-o MODEL1 -o MODEL2 ...] EXP
  
  Check the backup of EVERY legs of one run, by listing
  output and restart directories that are not empty.
  
  Options are:
-    -l            : list the [L]ocal source dir
-    -r            : list the [R]emote target dir
+    -b            : [B]asic, ie check that the logs report success
+    -l            : list non-empty [L]ocal dirs and their size
+    -r            : list [R]emote dirs and number of file (or files themselves in case of restart tarballs and tm5 output)
     -o model      : limit to ouput from model. Can be several. Default is all possible.
     -f LEG_NUMBER : specify leg number, for which the output/restart [F]iles are listed
 
@@ -23,17 +24,18 @@ set -e
 
 # -- options
 omodels=
-while getopts "rlo:f:h?" opt; do
+while getopts "vbrlo:f:h?" opt; do
     case "$opt" in
         h|\?)
             usage
             exit 0
             ;;
+        b) basic=1 ;;
         l) local=1 ;;
-        o)  omodels="$OPTARG $omodels" ;;
-        r) remote=1
-            ;;
-        f)  full=$OPTARG
+        o) omodels="$OPTARG $omodels" ;;
+        r) remote=1 ;;
+        f) full=$OPTARG ;;
+        v) verbose=1
     esac
 done
 shift $((OPTIND-1))
@@ -49,7 +51,7 @@ fi
 if [[ -z $omodels ]]            # default to all models
 then 
     omodels="ifs nemo tm5 oasis"
-    exit 0
+    #exit 0
 fi
 
 
@@ -59,7 +61,31 @@ not_empty_dir () {
     [ -n "$(ls -A $1)" ] && return 0 || return 1
 }
 
-# -- basic check
+# -- check
+
+if (( basic ))
+then
+    # Assumption about the log file specified when calling "sbatch -o logfile backup_ece3.sh ..."
+    log=log/${exp}-$(printf %03d $i).out
+    if [[ -f $log ]]
+    then
+        (( verbose )) && { echo; echo " -- Check $log --" ; 
+                           grep "ECMWF.*INFO.*ExitCode" $log ; 
+                           grep "ECMWF.*INFO.*State" $log ; }
+        excode=$(sed -nr "s|.*INFO.* ExitCode *: ||"p $log)
+        status=$(sed -nr "s|.*INFO.*State *: ||"p $log)
+        second=$(sed -nr "s|.*INFO.* ElapsedRaw *: ||"p $log)
+        if [[ $excode = '0:0' && $status = COMPLETED ]]; then
+            (( verbose )) && echo "Looks like it went ok."
+        fi
+        echo -n "Runtime (hh:mm:ss): "
+        echo $second | awk '{printf "%d:%02d:%02d\n", $1/3600, ($1/60)%60, $1%60}'
+    else
+        echo "submit script log not found: $log"
+    fi
+fi
+
+
 if (( local ))
 then
     for model in $omodels
@@ -125,7 +151,7 @@ then
     for model in ${omodels//tm5}
     do        
         echo ; echo "*II* checking REMOTE RESTART for ${model}" ; echo
-        els -l $ecfs_dir/$1/restart.${model}.*.tar
+        els -l $ecfs_dir/$1/restart.${model}.*.tar || :
     done
 
     if [[ $omodels =~ tm5 ]]

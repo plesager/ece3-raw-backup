@@ -15,12 +15,12 @@ usage() {
  Submit a job to retrieve OUTPUT and/or RESTART from ONE leg of one
  experiment and for any requested components.
 
- Options are:
+ Options are HARDCODED (see below) for the time being. Idea:
     -r model    : an EC-Earth3 component for which restart should be retrieved
     -o model    : an EC-Earth3 component for which output should be retrieved
-    -c          : check for success of previous retrieval
+    -c          : check for success of a previous retrieval
     -s          : silent
-    -l          : page the log of previous retrieval with a '${PAGER:-less} <log>' command 
+    -l          : page the log of a previous retrieval with a '${PAGER:-less} <log>' command
 
 EOT
 }
