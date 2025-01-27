@@ -1,0 +1,546 @@
+Here the list of 481 output table/variable directories from FOCI
+project. ECFS file size limit is 137 GB.
+
+#+begin_src sh
+for ddd in *; do echo -n "$ddd : "; sz=($(du -s --apparent-size -BM $ddd)); echo -n "${sz[0]} "; echo "${sz[0]:0:-1} / 49" | bc ; done
+#+end_src
+
+| FOCI | Table     | DirSize[1] | Per year |   Group | type |
+|------+-----------+------------+----------+---------+------|
+|      | 3hr       | 932283M    | 19 G/y   |       1 | p    |
+| *    | 6hrLev    | 13458473M  | 275 G/y  | 2+split | e    |
+| *    | 6hrPlev   | 3424M      | 69 M/y   |       3 | r    |
+| *    | 6hrPlevPt | 458603M    | 9.4 G/y  |       3 |      |
+| *    | AER6hrPt  | 7004817M   | 143 G/y  | 4+split | y    |
+|      | CF3hr     | 7948876M   | 162 G/y  | 5+split | e    |
+|      | E3hrPt    | 4862684M   | 99 G/y   |       6 | a    |
+|      | day       | 592034M    | 12 G/y   |       7 | r    |
+|------+-----------+------------+----------+---------+------|
+|      |           |            |          |         | [2]  |
+|      | Omon      | 101742M    | 2 G/y    |       8 |      |
+|      | AERhr     | 62222M     | 1.3 G/y  |       9 |      |
+|      | AERmon    | 64254M     | 1.3 G/y  |      10 | p    |
+|      | Amon      | 69862M     | 1.4 G/y  |      11 | e    |
+|      | CFmon     | 64719M     | 1.3 G/y  |      12 | r    |
+|      | E3hr      | 33657M     | 686 M/y  |      13 |      |
+|      | AERday    | 17610M     | 359 M/y  |      14 | t    |
+|      | CFday     | 13112M     | 267 M/y  |      15 | a    |
+|      | Oday      | 11221M     | 229 M/y  |      16 | b    |
+|      | Emon      | 7042M      | 143 M/y  |      17 | l    |
+|      | SIday     | 3577M      | 73 M/y   |      17 | e    |
+|      | SImon     | 2897M      | 59 M/y   |      17 |      |
+|      | Lmon      | 543M       | 11 M/y   |      17 |      |
+|      | LImon     | 369M       | 7 M/y    |      17 |      |
+|      | AERmonZ   | 79M        | 1.6 M/y  |      17 |      |
+|------+-----------+------------+----------+---------+------|
+|      | Ofx       | 8M         | -        |    once |      |
+|      | fx        | 1M         | -        |         |      |
+
+[1] for 49 years (2015-2063). Next round will be slightly smaller with 37 years (2064-2100).
+[2] all the others: rough estimate (+ 2 1.3 1.3 1.4 1.3 0.36 0.27 0.69 0.14 0.23 0.15) 9.14 G/y
+    but may be worth packing per table, even grouping some of them.
+    
+
+| Table     | Variable         | FOCI downscaling | Size by year |
+|-----------+------------------+------------------+--------------|
+| 3hr       |                  |                  | 19 G/y       |
+|           | clt              |                  |              |
+|           | hfls             |                  |              |
+|           | hfss             |                  |              |
+|           | huss             |                  |              |
+|           | mrro             |                  |              |
+|           | mrsos            |                  |              |
+|           | pr               |                  |              |
+|           | prc              |                  |              |
+|           | prsn             |                  |              |
+|           | ps               |                  |              |
+|           | rlds             |                  |              |
+|           | rldscs           |                  |              |
+|           | rlus             |                  |              |
+|           | rsds             |                  |              |
+|           | rsdscs           |                  |              |
+|           | rsus             |                  |              |
+|           | rsuscs           |                  |              |
+|           | tas              |                  |              |
+|           | tos              | *                |              |
+|           | tosa             | *                |              |
+|           | tslsi            |                  |              |
+|           | uas              |                  |              |
+|           | vas              |                  |              |
+|-----------+------------------+------------------+--------------|
+| 6hrLev    |                  | all              | 275 G/year   |
+|           | ec550aer         | *                |              |
+|           | hus              | *                |              |
+|           | ps               | *                |              |
+|           | ta               | *                |              |
+|           | ua               | *                |              |
+|           | va               | *                |              |
+|           | zg               | *                |              |
+|-----------+------------------+------------------+--------------|
+| 6hrPlev   |                  | all              | 78 M/y       |
+|           | siconca          | *                |              |
+|-----------+------------------+------------------+--------------|
+| 6hrPlevPt |                  | all              | 9.4G/y       |
+|           | mrsol            | *                |              |
+|           | psl              | *                |              |
+|           | rv850            | *                |              |
+|           | ta               | *                |              |
+|           | tosa             | *                |              |
+|           | ts               | *                |              |
+|           | tsl              | *                |              |
+|           | ua               | *                |              |
+|           | va               | *                |              |
+|           | zg500            | *                |              |
+|-----------+------------------+------------------+--------------|
+| AER6hrPt  |                  | all              | 143 G/y      |
+|           | ald2             | *                |              |
+|           | c2h4             | *                |              |
+|           | c2h5oh           | *                |              |
+|           | c2h6             | *                |              |
+|           | c3h6             | *                |              |
+|           | c3h8             | *                |              |
+|           | ch3coch3         | *                |              |
+|           | ch3cocho         | *                |              |
+|           | ch3o2h           | *                |              |
+|           | ch3o2no2         | *                |              |
+|           | ch3oh            | *                |              |
+|           | ch4              | *                |              |
+|           | co               | *                |              |
+|           | conccnmode01     | *                |              |
+|           | conccnmode02     | *                |              |
+|           | conccnmode03     | *                |              |
+|           | conccnmode04     | *                |              |
+|           | conccnmode05     | *                |              |
+|           | conccnmode06     | *                |              |
+|           | conccnmode07     | *                |              |
+|           | dms              | *                |              |
+|           | h2o2             | *                |              |
+|           | h2so4            | *                |              |
+|           | hcho             | *                |              |
+|           | hcooh            | *                |              |
+|           | hno3             | *                |              |
+|           | hno4             | *                |              |
+|           | ho2              | *                |              |
+|           | hono             | *                |              |
+|           | hus              | *                |              |
+|           | isop             | *                |              |
+|           | ispd             | *                |              |
+|           | mcooh            | *                |              |
+|           | mmraerh2omode01  | *                |              |
+|           | mmraerh2omode02  | *                |              |
+|           | mmraerh2omode03  | *                |              |
+|           | mmraerh2omode04  | *                |              |
+|           | mmrbcmode02      | *                |              |
+|           | mmrbcmode03      | *                |              |
+|           | mmrbcmode04      | *                |              |
+|           | mmrbcmode05      | *                |              |
+|           | mmrdustmode03    | *                |              |
+|           | mmrdustmode04    | *                |              |
+|           | mmrdustmode06    | *                |              |
+|           | mmrdustmode07    | *                |              |
+|           | mmrnh4           | *                |              |
+|           | mmrno3           | *                |              |
+|           | mmroamode02      | *                |              |
+|           | mmroamode03      | *                |              |
+|           | mmroamode04      | *                |              |
+|           | mmroamode05      | *                |              |
+|           | mmrso4mode01     | *                |              |
+|           | mmrso4mode02     | *                |              |
+|           | mmrso4mode03     | *                |              |
+|           | mmrso4mode04     | *                |              |
+|           | mmrsoamode01     | *                |              |
+|           | mmrsoamode02     | *                |              |
+|           | mmrsoamode03     | *                |              |
+|           | mmrsoamode04     | *                |              |
+|           | mmrsoamode05     | *                |              |
+|           | mmrssmode03      | *                |              |
+|           | mmrssmode04      | *                |              |
+|           | msa              | *                |              |
+|           | n2o5             | *                |              |
+|           | nh3              | *                |              |
+|           | no               | *                |              |
+|           | no2              | *                |              |
+|           | no3              | *                |              |
+|           | o3               | *                |              |
+|           | oh               | *                |              |
+|           | ole              | *                |              |
+|           | orgntr           | *                |              |
+|           | pan              | *                |              |
+|           | par              | *                |              |
+|           | ps               | *                |              |
+|           | rooh             | *                |              |
+|           | so2              | *                |              |
+|           | ta               | *                |              |
+|           | terp             | *                |              |
+|           | zg               | *                |              |
+|-----------+------------------+------------------+--------------|
+| AERday    |                  |                  | 360 M/y      |
+|           | maxpblz          |                  |              |
+|           | minpblz          |                  |              |
+|           | od550aer         |                  |              |
+|           | sfo3max          |                  |              |
+|           | toz              |                  |              |
+|           | zg1000           |                  |              |
+|           | zg500            |                  |              |
+|-----------+------------------+------------------+--------------|
+| AERhr     |                  |                  | 1.3 G/y      |
+|           | ps               |                  |              |
+|           | sfno2            |                  |              |
+|           | sfo3             |                  |              |
+|           | sfpm25           |                  |              |
+|-----------+------------------+------------------+--------------|
+| AERmon    |                  |                  | 1.3 G/y      |
+|           | abs550aer        |                  |              |
+|           | airmass          |                  |              |
+|           | bldep            |                  |              |
+|           | c2h6             |                  |              |
+|           | c3h6             |                  |              |
+|           | c3h8             |                  |              |
+|           | cdnc             |                  |              |
+|           | ch3coch3         |                  |              |
+|           | ch4              |                  |              |
+|           | cheaqpso4        |                  |              |
+|           | chegpso4         |                  |              |
+|           | chepsoa          |                  |              |
+|           | cltc             |                  |              |
+|           | co               |                  |              |
+|           | dms              |                  |              |
+|           | drybc            |                  |              |
+|           | drydust          |                  |              |
+|           | drynh3           |                  |              |
+|           | drynh4           |                  |              |
+|           | drynoy           |                  |              |
+|           | dryo3            |                  |              |
+|           | dryoa            |                  |              |
+|           | dryso2           |                  |              |
+|           | dryso4           |                  |              |
+|           | dryss            |                  |              |
+|           | emibc            |                  |              |
+|           | emibvoc          |                  |              |
+|           | emico            |                  |              |
+|           | emidms           |                  |              |
+|           | emidust          |                  |              |
+|           | emiisop          |                  |              |
+|           | emilnox          |                  |              |
+|           | eminh3           |                  |              |
+|           | eminox           |                  |              |
+|           | emioa            |                  |              |
+|           | emiso2           |                  |              |
+|           | emiso4           |                  |              |
+|           | emiss            |                  |              |
+|           | emivoc           |                  |              |
+|           | hcho             |                  |              |
+|           | hno3             |                  |              |
+|           | isop             |                  |              |
+|           | jno2             |                  |              |
+|           | lossch4          |                  |              |
+|           | lossco           |                  |              |
+|           | lwp              |                  |              |
+|           | mmraerh2o        |                  |              |
+|           | mmrbc            |                  |              |
+|           | mmrdust          |                  |              |
+|           | mmrnh4           |                  |              |
+|           | mmrno3           |                  |              |
+|           | mmroa            |                  |              |
+|           | mmrpm1           |                  |              |
+|           | mmrpm10          |                  |              |
+|           | mmrpm2p5         |                  |              |
+|           | mmrso4           |                  |              |
+|           | mmrsoa           |                  |              |
+|           | mmrss            |                  |              |
+|           | no               |                  |              |
+|           | no2              |                  |              |
+|           | o3               |                  |              |
+|           | o3loss           |                  |              |
+|           | o3prod           |                  |              |
+|           | o3ste            |                  |              |
+|           | od440aer         |                  |              |
+|           | od550aer         |                  |              |
+|           | od550aerh2o      |                  |              |
+|           | od550bc          |                  |              |
+|           | od550dust        |                  |              |
+|           | od550lt1aer      |                  |              |
+|           | od550no3         |                  |              |
+|           | od550oa          |                  |              |
+|           | od550so4         |                  |              |
+|           | od550soa         |                  |              |
+|           | od550ss          |                  |              |
+|           | od870aer         |                  |              |
+|           | oh               |                  |              |
+|           | pan              |                  |              |
+|           | phalf            |                  |              |
+|           | ps               |                  |              |
+|           | ptp              |                  |              |
+|           | rlsaf            |                  |              |
+|           | rlscsaf          |                  |              |
+|           | rlutaf           |                  |              |
+|           | rlutcsaf         |                  |              |
+|           | rssaf            |                  |              |
+|           | rsscsaf          |                  |              |
+|           | rsutaf           |                  |              |
+|           | rsutcsaf         |                  |              |
+|           | so2              |                  |              |
+|           | tatp             |                  |              |
+|           | toz              |                  |              |
+|           | tropoz           |                  |              |
+|           | wa               |                  |              |
+|           | wetbc            |                  |              |
+|           | wetdust          |                  |              |
+|           | wetnh3           |                  |              |
+|           | wetnh4           |                  |              |
+|           | wetnoy           |                  |              |
+|           | wetoa            |                  |              |
+|           | wetso2           |                  |              |
+|           | wetso4           |                  |              |
+|           | wetss            |                  |              |
+|           | ztp              |                  |              |
+|-----------+------------------+------------------+--------------|
+| AERmonZ   |                  |                  |  1.6 M/y     |
+|           | ch4              |                  |              |
+|           | hno3             |                  |              |
+|           | ho2              |                  |              |
+|           | noy              |                  |              |
+|           | o3               |                  |              |
+|           | oh               |                  |              |
+|           | ta               |                  |              |
+|-----------+------------------+------------------+--------------|
+| Amon      |                  |                  |              |
+|           | ch4              |                  |              |
+|           | ch4global        |                  |              |
+|           | cl               |                  |              |
+|           | cli              |                  |              |
+|           | clivi            |                  |              |
+|           | clt              |                  |              |
+|           | clw              |                  |              |
+|           | clwvi            |                  |              |
+|           | evspsbl          |                  |              |
+|           | hfls             |                  |              |
+|           | hfss             |                  |              |
+|           | hur              |                  |              |
+|           | hurs             |                  |              |
+|           | hus              |                  |              |
+|           | huss             |                  |              |
+|           | pr               |                  |              |
+|           | prc              |                  |              |
+|           | prsn             |                  |              |
+|           | prw              |                  |              |
+|           | ps               |                  |              |
+|           | psl              |                  |              |
+|           | rlds             |                  |              |
+|           | rldscs           |                  |              |
+|           | rlus             |                  |              |
+|           | rlut             |                  |              |
+|           | rlutcs           |                  |              |
+|           | rsds             |                  |              |
+|           | rsdscs           |                  |              |
+|           | rsdt             |                  |              |
+|           | rsus             |                  |              |
+|           | rsuscs           |                  |              |
+|           | rsut             |                  |              |
+|           | rsutcs           |                  |              |
+|           | rtmt             |                  |              |
+|           | sbl              |                  |              |
+|           | sfcWind          |                  |              |
+|           | ta               |                  |              |
+|           | tas              |                  |              |
+|           | tasmax           |                  |              |
+|           | tasmin           |                  |              |
+|           | tauu             |                  |              |
+|           | tauv             |                  |              |
+|           | ts               |                  |              |
+|           | ua               |                  |              |
+|           | uas              |                  |              |
+|           | va               |                  |              |
+|           | vas              |                  |              |
+|           | wap              |                  |              |
+|           | zg               |                  |              |
+|-----------+------------------+------------------+--------------|
+| CF3hr     |                  |                  |              |
+|           | pfull            |                  |              |
+|           | rsuscs           |                  |              |
+|           | ta               |                  |              |
+|           | ts               |                  |              |
+|-----------+------------------+------------------+--------------|
+| CFday     |                  |                  |              |
+|           | ps               |                  |              |
+|           | rsdscs           |                  |              |
+|-----------+------------------+------------------+--------------|
+| CFmon     |                  |                  |              |
+|           | hur              |                  |              |
+|           | hus              |                  |              |
+|           | ta               |                  |              |
+|-----------+------------------+------------------+--------------|
+| day       |                  |                  |              |
+|           | clt              |                  |              |
+|           | hfls             |                  |              |
+|           | hfss             |                  |              |
+|           | hur              |                  |              |
+|           | hurs             |                  |              |
+|           | hursmax          |                  |              |
+|           | hursmin          |                  |              |
+|           | hus              |                  |              |
+|           | huss             |                  |              |
+|           | mrro             |                  |              |
+|           | mrso             |                  |              |
+|           | mrsos            |                  |              |
+|           | pr               |                  |              |
+|           | prc              |                  |              |
+|           | prsn             |                  |              |
+|           | psl              |                  |              |
+|           | rlds             |                  |              |
+|           | rlus             |                  |              |
+|           | rlut             |                  |              |
+|           | rsds             |                  |              |
+|           | rsus             |                  |              |
+|           | sfcWind          |                  |              |
+|           | sfcWindmax       |                  |              |
+|           | snc              |                  |              |
+|           | snw              |                  |              |
+|           | ta               |                  |              |
+|           | tas              |                  |              |
+|           | tasmax           |                  |              |
+|           | tasmin           |                  |              |
+|           | tslsi            |                  |              |
+|           | ua               |                  |              |
+|           | uas              |                  |              |
+|           | va               |                  |              |
+|           | vas              |                  |              |
+|           | wap              |                  |              |
+|           | zg               |                  |              |
+|-----------+------------------+------------------+--------------|
+| E3hr      |                  |                  |              |
+|           | rsutcs           |                  |              |
+|-----------+------------------+------------------+--------------|
+| E3hrPt    |                  |                  |              |
+|           | hus              |                  |              |
+|-----------+------------------+------------------+--------------|
+| Emon      |                  |                  |              |
+|           | mrsol            |                  |              |
+|           | reffclws         |                  |              |
+| fx        |                  |                  |              |
+|           | areacella        |                  |              |
+|           | orog             |                  |              |
+|           | sftlf            |                  |              |
+| LImon     |                  |                  |              |
+|           | hfdsn            |                  |              |
+|           | lwsnl            |                  |              |
+|           | sbl              |                  |              |
+|           | snc              |                  |              |
+|           | snd              |                  |              |
+|           | snm              |                  |              |
+|           | snw              |                  |              |
+|           | tsn              |                  |              |
+| Lmon      |                  |                  |              |
+|           | mrfso            |                  |              |
+|           | mrro             |                  |              |
+|           | mrros            |                  |              |
+|           | mrso             |                  |              |
+|           | mrsos            |                  |              |
+|           | tsl              |                  |              |
+| Oday      |                  |                  |              |
+|           | omldamax         |                  |              |
+|           | tos              |                  |              |
+|           | tossq            |                  |              |
+| Ofx       |                  |                  |              |
+|           | areacello        |                  |              |
+|           | basin            |                  |              |
+|           | deptho           |                  |              |
+|           | hfgeou           |                  |              |
+|           | sftof            |                  |              |
+|-----------+------------------+------------------+--------------|
+| Omon      |                  |                  |              |
+|           | bigthetao        |                  |              |
+|           | bigthetaoga      |                  |              |
+|           | evs              |                  |              |
+|           | friver           |                  |              |
+|           | fsitherm         |                  |              |
+|           | hfbasin          |                  |              |
+|           | hfbasinpmadv     |                  |              |
+|           | hfds             |                  |              |
+|           | hfevapds         |                  |              |
+|           | hfgeou           |                  |              |
+|           | hfrainds         |                  |              |
+|           | htovgyre         |                  |              |
+|           | htovovrt         |                  |              |
+|           | masscello        |                  |              |
+|           | masso            |                  |              |
+|           | mlotst           |                  |              |
+|           | mlotstmax        |                  |              |
+|           | mlotstmin        |                  |              |
+|           | msftbarot        |                  |              |
+|           | msftyz           |                  |              |
+|           | obvfsq           |                  |              |
+|           | pbo              |                  |              |
+|           | prsn             |                  |              |
+|           | pso              |                  |              |
+|           | rsntds           |                  |              |
+|           | sltovgyre        |                  |              |
+|           | sltovovrt        |                  |              |
+|           | so               |                  |              |
+|           | sob              |                  |              |
+|           | soga             |                  |              |
+|           | sos              |                  |              |
+|           | sosga            |                  |              |
+|           | tauuo            |                  |              |
+|           | tauvo            |                  |              |
+|           | thetao           |                  |              |
+|           | thetaoga         |                  |              |
+|           | thkcello         |                  |              |
+|           | tob              |                  |              |
+|           | tos              |                  |              |
+|           | tosga            |                  |              |
+|           | tossq            |                  |              |
+|           | umo              |                  |              |
+|           | uo               |                  |              |
+|           | vmo              |                  |              |
+|           | vo               |                  |              |
+|           | volo             |                  |              |
+|           | wfo              |                  |              |
+|           | wfonocorr        |                  |              |
+|           | wmo              |                  |              |
+|           | wo               |                  |              |
+|           | zhalfo           |                  |              |
+|           | zos              |                  |              |
+|           | zossq            |                  |              |
+|           | zostoga          |                  |              |
+|-----------+------------------+------------------+--------------|
+| SIday     |                  |                  |              |
+|           | siconc           |                  |              |
+|           | siconca          |                  |              |
+|           | sithick          |                  |              |
+|           | siu              |                  |              |
+|           | siv              |                  |              |
+|-----------+------------------+------------------+--------------|
+| SImon     |                  |                  |              |
+|           | siage            |                  |              |
+|           | sicompstren      |                  |              |
+|           | siconc           |                  |              |
+|           | siconca          |                  |              |
+|           | sidivvel         |                  |              |
+|           | sidmassevapsubl  |                  |              |
+|           | sidmassgrowthbot |                  |              |
+|           | sidmassgrowthwat |                  |              |
+|           | sidmassmeltbot   |                  |              |
+|           | sidmassmelttop   |                  |              |
+|           | sidmasssi        |                  |              |
+|           | sidmasstranx     |                  |              |
+|           | sidmasstrany     |                  |              |
+|           | siflswdtop       |                  |              |
+|           | sihc             |                  |              |
+|           | simass           |                  |              |
+|           | sisali           |                  |              |
+|           | sisnmass         |                  |              |
+|           | sisnthick        |                  |              |
+|           | sispeed          |                  |              |
+|           | sistrxdtop       |                  |              |
+|           | sistrydtop       |                  |              |
+|           | sitempsnic       |                  |              |
+|           | sitemptop        |                  |              |
+|           | sithick          |                  |              |
+|           | sitimefrac       |                  |              |
+|           | siu              |                  |              |
+|           | siv              |                  |              |
+|           | sivol            |                  |              |
+|           | sndmassmelt      |                  |              |
+|           | sndmasssnf       |                  |              |
+
