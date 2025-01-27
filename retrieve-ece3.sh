@@ -1,9 +1,10 @@
 #! /usr/bin/env bash
 
 #SBATCH --qos=nf
-#SBATCH --ntasks=24
+#SBATCH --cpus-per-task=24
 #SBATCH --output=log/rtrv.%j.out
-#SBATCH --time=06:00:00
+#SBATCH --time=12:00:00
+#SBATCH --ntasks=1
 
 set -e
 
@@ -30,9 +31,9 @@ error() { echo "ERROR: $1" >&2; exit 1; }
 urror() { echo "ERROR: $1" >&2; usage; exit 1; }
 
 # -- HARDCODED OPTIONS - list of models for which output or restart are requested
-out_models=
+out_models=  #"ifs"
 rst_models="ifs nemo oasis"
-verb=0
+verb=1
 
 # while getopts "ho:r:cl" opt; do
 #     case "$opt" in
@@ -79,10 +80,18 @@ do
 
     if [[ $model = tm5 ]] 
     then
+        farch=output.${model}.${k3d}.tar
+        for f in $(els ${ecfs_dir}/${exp}/${farch}*)
+        do
+            ( cd ${runs_dir}/${exp}
+              ecp ${ecfs_dir}/${exp}/$f $f ) &
+        done
+        wait
         ( cd ${runs_dir}/${exp}
-            ecp ${ecfs_dir}/${exp}/output.${model}.${k3d}.tar output.${model}.${k3d}.tar
-            tar -xf output.${model}.${k3d}.tar 
-            rm -f output.${model}.${k3d}.tar ) &
+          [[ -f ${farch}_0 ]] && cat ${farch}_* > ${farch}  
+          tar -xf ${farch}
+          #rm -f output.${model}.${k3d}.tar*
+        ) &
     else
         for f in $(els ${ecfs_dir}/${exp}/output/${model}/${k3d})
         do
