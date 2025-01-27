@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# when=20250101; sbatch -q nf -c 16 -n 1 -o log/saveic.$when.out --wrap="./clean-store-saveic.sh fs01 $when"
+# when=2025; sbatch -q nf -c 1 -n 1 -J saveic_$when -o log/saveic.$when.out --wrap="./clean-store-saveic.sh fs01 ${when}0101"
 
 set -ue
 

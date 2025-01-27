@@ -70,6 +70,9 @@ mind that ECFS can be very slow at times.
 **** CMIP, trunk output for IFS, Primavera output for NEMO
 - 5hr for high resolution
 
+**** FOCI project - with a lot of 6-hourly output for downscaling
+- 12hr
+
 *** Other useful options
 You can set the name of your job with /--job-name=name/. If waiting
 for another job to finish successfully before submitting the backup

@@ -20,7 +20,8 @@ set -ue
 #  - we are strictly interested in the downscaling data: they are the
 #    one to be shared (all 6hr basically). So it is fine to pack other
 #    data as we want (eg mix tables and/or years in a tarball) but
-#    those for the project should be user-friendly to some extend.
+#    those for the project should be user-friendly to some extend. So
+#    I do not use an automatic split of tarball, as it is done in backup_ece3.sh
 #  - We are interesting in few periods, namely:
 #    - 2015-2024 (U. Thessaloniki)
 #    - 2045-2055 (FOCI), with 2046-2055 (U. Thessaloniki)  -- PRIORITY #1 --
@@ -35,7 +36,7 @@ id=r1i1p1f1
 EXP=fs01
 tag='2015-2063'
 WHATSUP=FOCI
-cleanup=0
+cleanup=0                       # DANGER ZONE !!!!! 0=archive, 1=delete files
 dryrun=0
 # --->8------
 

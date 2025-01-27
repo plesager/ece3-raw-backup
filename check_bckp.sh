@@ -3,7 +3,7 @@
 usage() {
     cat << EOT >&2
  Usage:
-        ${0##*/} [-l] [-r] [-f NB] [-o MODEL1 -o MODEL2 ...] EXP
+        ${0##*/} [-l] [-r] [-n NB] [-o MODEL1 -o MODEL2 ...] EXP
  
  Check the backup of EVERY legs of one run, by listing
  output and restart directories that are not empty.
@@ -13,7 +13,7 @@ usage() {
     -l            : list non-empty [L]ocal dirs and their size
     -r            : list [R]emote dirs and number of file (or files themselves in case of restart tarballs and tm5 output)
     -o model      : limit to ouput from model. Can be several. Default is all possible.
-    -f LEG_NUMBER : specify leg number, for which the output/restart [F]iles are listed
+    -n LEG_NUMBER : leg [N]umber, for which the output/restart files are also listed (case of -r or -l)
 
 EOT
 }
@@ -24,7 +24,8 @@ set -e
 
 # -- options
 omodels=
-while getopts "vbrlo:f:h?" opt; do
+full=0
+while getopts "vbrlo:n:h?" opt; do
     case "$opt" in
         h|\?)
             usage
@@ -34,8 +35,8 @@ while getopts "vbrlo:f:h?" opt; do
         l) local=1 ;;
         o) omodels="$OPTARG $omodels" ;;
         r) remote=1 ;;
-        f) full=$OPTARG ;;
-        v) verbose=1
+        n) full=$OPTARG ;;
+        v) verbose=1 ;;
     esac
 done
 shift $((OPTIND-1))
@@ -65,24 +66,32 @@ not_empty_dir () {
 
 if (( basic ))
 then
-    # Assumption about the log file specified when calling "sbatch -o logfile backup_ece3.sh ..."
-    log=log/${exp}-$(printf %03d $i).out
-    if [[ -f $log ]]
-    then
-        (( verbose )) && { echo; echo " -- Check $log --" ; 
-                           grep "ECMWF.*INFO.*ExitCode" $log ; 
-                           grep "ECMWF.*INFO.*State" $log ; }
-        excode=$(sed -nr "s|.*INFO.* ExitCode *: ||"p $log)
-        status=$(sed -nr "s|.*INFO.*State *: ||"p $log)
-        second=$(sed -nr "s|.*INFO.* ElapsedRaw *: ||"p $log)
-        if [[ $excode = '0:0' && $status = COMPLETED ]]; then
-            (( verbose )) && echo "Looks like it went ok."
+    # Assumption about the log file specified when calling
+    #   sbatch -o logfile backup_ece3.sh ...
+    # is
+    #   log/$1-$(printf %03d $i).out
+    #
+    for log in log/$1-*.out
+    do
+        if [[ -f $log ]]
+        then
+            (( verbose )) && { echo; echo " -- Check $log --" ; 
+                               grep "ECMWF.*INFO.*ExitCode" $log ; 
+                               grep "ECMWF.*INFO.*State" $log ; }
+            excode=$(sed -nr "s|.*INFO.* ExitCode *: ||"p $log)
+            status=$(sed -nr "s|.*INFO.*State *: ||"p $log)
+            second=$(sed -nr "s|.*INFO.* ElapsedRaw *: ||"p $log)
+            if [[ $excode = '0:0' && $status = COMPLETED ]]; then
+                (( verbose )) && echo "Looks like it went ok."
+                echo -n "$log - Runtime (hh:mm:ss): "
+                echo $second | awk '{printf "%d:%02d:%02d\n", $1/3600, ($1/60)%60, $1%60}'
+            else
+                echo "$log - Still running (I guess)"
+            fi
+        else
+            echo "submit script log not found: $log"
         fi
-        echo -n "Runtime (hh:mm:ss): "
-        echo $second | awk '{printf "%d:%02d:%02d\n", $1/3600, ($1/60)%60, $1%60}'
-    else
-        echo "submit script log not found: $log"
-    fi
+    done
 fi
 
 
@@ -144,7 +153,7 @@ then
     if [[ $omodels =~ tm5 ]]
     then
         echo ; echo "*II* checking REMOTE tm5 output" ; echo
-        els -l $ecfs_dir/$1/output.tm5.*.tar
+        els -l $ecfs_dir/$1/output.tm5.*.tar*
     fi
 
     # -- Restart
