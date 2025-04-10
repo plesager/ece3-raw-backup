@@ -1,8 +1,10 @@
 #! /usr/bin/env bash
 
 #SBATCH --qos=nf
+#SBATCH --cpus-per-task=24
 #SBATCH --output=bckp.%j.out
-#SBATCH --time=06:00:00
+#SBATCH --time=12:00:00
+#SBATCH --ntasks=1
 
 usage() {
     cat << EOT >&2
@@ -55,7 +57,7 @@ leg=$((10#$2))
 archive=${ecfs_dir}/${exp}
 
 ######################### Hardcoded options #########################
-tar_restart=1
+#tar_restart=1
 
 if (( leg ))
 then
@@ -66,12 +68,14 @@ then
     do_ifs_output=1
     do_nemo_output=1
     do_tm5_output=1
+    do_lpjg_output=1
 
     # -- do not change
     do_tm5_restart=0
     do_hiresclim2=0
     do_climato=0
     do_log=0
+    do_co2boxism_output=0
 else
     # Special case of leg 0. Typically done only once. Useful for
     # tarball of TM5 restarts, log files, and output of hiresclim
@@ -79,15 +83,17 @@ else
 
     # -- set to 0 if you want to ignore these data
     do_tm5_restart=1
-    do_hiresclim2=0
+    do_hiresclim2=1
     do_climato=0
     do_log=1
+    do_co2boxism_output=1
 
     # -- do not change
     do_restart=0
     do_ifs_output=0
     do_nemo_output=0
     do_tm5_output=0
+    do_lpjg_output=0
 fi
 
 # Group Hiresclim output: number of years to bundle in one archive (roughly 5
@@ -118,10 +124,14 @@ echo " *II*  all restart: $do_restart"
 echo " *II*   ifs output: $do_ifs_output"
 echo " *II*  nemo output: $do_nemo_output"
 echo " *II*   tm5 output: $do_tm5_output"
+echo " *II*  lpjg output: $do_lpjg_output"
 echo " *II*"
 echo " *II* Special:"
 echo " *II*    hiresclim2: $do_hiresclim2"
 echo " *II*   tm5_restart: $do_tm5_restart"
+echo " *II*       climato: $do_climato"
+echo " *II*           log: $do_log"
+echo " *II* co2box/pism output: $do_co2boxism_output"
 
 ##############
 # Utilities  #
@@ -135,7 +145,7 @@ bckp_emcp () {
 maxsize=137438953472             # limit in bytes for emv as of October 2023 - hpc2020 (137GB)
 
 split_move () {
-    # split if larger than what emv can handle (34359738368 bytes)
+    # split if larger than what emv can handle
     local f=$1
     actualsize=$(du -b "$f" | cut -f 1)
     if (( $actualsize > $maxsize )); then
@@ -144,7 +154,7 @@ split_move () {
         \rm -f $f
         for k in $(eval echo {0..$((nn-1))})
         do 
-            bckp_emcp ${f}_${k}
+            bckp_emcp ${f}_${k} # TODO parallelize may be tricky
         done
     else
         bckp_emcp $f
@@ -165,43 +175,18 @@ then
     then
         echo; echo " *II* IFS RESTART ${legnbP1} ***"; echo
 
-        if (( ! tar_restart ))
-        then
-            emkdir -p ${archive}/restart/ifs/${legnbP1}
-            echmod 755 ${archive}/restart/ifs/${legnbP1}
-        fi
-
         if (( is_last ))
         then
-            if (( tar_restart ))
-            then
-                f=restart.ifs.${legnbP1}.tar
-                tar -cf $f  srf* ece.info rcf
-                split_move $f
-            else
-                for f in srf* ece.info rcf
-                do
-                    if [[ -f $f ]]; then
-                        emv -e $f ${archive}/restart/ifs/${legnbP1}/$f
-                        echmod 444 ${archive}/restart/ifs/${legnbP1}/$f
-                    fi
-                done
-            fi
+            ( f=restart.ifs.${legnbP1}.tar
+              tar -cf $f  srf* ece.info rcf
+              split_move $f
+            ) &
         else
-            if (( tar_restart ))
-            then
-                # need to check if remote exists to trap cases of crash after
-                # 'split_move' and before end of '\rm -f', for now let script stop
-                f=$(echo restart/ifs/${legnbP1} | sed "s|/|.|g").tar
-                tar -cf $f restart/ifs/${legnbP1}
-                split_move $f
-                \rm -f restart/ifs/${legnbP1}/*
-            else
-                for f in restart/ifs/${legnbP1}/*
-                do
-                    [[ -f $f ]] && split_move $f
-                done
-            fi
+            ( f=$(echo restart/ifs/${legnbP1} | sed "s|/|.|g").tar
+                  tar -cf $f restart/ifs/${legnbP1}
+                  split_move $f
+                  \rm -f restart/ifs/${legnbP1}/*
+            ) &
         fi
     fi
     
@@ -209,69 +194,45 @@ then
     then
         echo; echo " *II* NEMO RESTART ${legnbP1} ***"; echo
 
-        if (( ! tar_restart ))
-        then 
-            emkdir -p ${archive}/restart/nemo/${legnbP1}
-            echmod 755 ${archive}/restart/nemo/${legnbP1}
-        fi
-
         if (( is_last ))
         then
-            if (( tar_restart ))
-            then 
-                f=restart.nemo.${legnbP1}.tar
-                tar -cf $f ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
-                split_move $f
-            else
-                for f in ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
-                do
-                    if [[ -f $f ]]; then
-                        emv -e $f ${archive}/restart/nemo/${legnbP1}/$f
-                        echmod 444 ${archive}/restart/nemo/${legnbP1}/$f
-                    fi
-                done
-            fi
+            ( f=restart.nemo.${legnbP1}.tar
+              tar -cf $f ${exp}_????????_restart_oce_????.nc ${exp}_????????_restart_ice_????.nc
+              split_move $f
+            ) &
         else            
-            if (( tar_restart ))
-            then 
-                # need to check if remote exists to trap cases of crash after
-                # 'split_move' and before end of '\rm -f', for now let the script stop
-                f=$(echo restart/nemo/${legnbP1} | sed "s|/|.|g").tar
-                tar -cf $f restart/nemo/${legnbP1}
-                split_move $f
-                \rm -f restart/nemo/${legnbP1}/*                   
-            else
-                for f in restart/nemo/${legnbP1}/*
-                do
-                    [[ -f $f ]] && split_move $f
-                done        
-            fi
+            ( f=$(echo restart/nemo/${legnbP1} | sed "s|/|.|g").tar
+              tar -cf $f restart/nemo/${legnbP1}
+              split_move $f
+              \rm -f restart/nemo/${legnbP1}/*
+            ) &
         fi
+    fi
+
+    if $(not_empty_dir restart/lpjg/${legnbP1}) || (( is_last ))
+    then
+        echo; echo " *II* LPJG RESTART ${legnbP1} ***"; echo
+
+        ( f=$(echo restart/lpjg/${legnbP1} | sed "s|/|.|g").tar
+          tar -cf $f restart/lpjg/${legnbP1}
+          split_move $f
+          \rm -rf restart/lpjg/${legnbP1}/*
+        ) &
     fi
 
     if not_empty_dir restart/oasis/${legnbP1}
     then
-        echo; echo " *II* OASIS RESTART ${legnbP1} ***"; echo
+        echo; echo " *II* OASIS/CO2BOX/FWF/PISM RESTART ${legnbP1} ***"; echo
 
-        if (( tar_restart ))
-        then 
-            # need to check if remote exists to trap cases of crash after
-            # 'split_move' and before end of '\rm -f', for now let the script stop
-            f=$(echo restart/oasis/${legnbP1} | sed "s|/|.|g").tar
-            tar -cf $f restart/oasis/${legnbP1}
-            split_move $f
-            \rm -f restart/oasis/${legnbP1}/*
-        else
-            emkdir -p ${archive}/restart/oasis/${legnbP1}
-            echmod 755 ${archive}/restart/oasis/${legnbP1}
-
-            for f in restart/oasis/${legnbP1}/*
-            do
-                [[ -f $f ]] && split_move $f
-            done        
-        fi
+        ( f=$(echo restart/oasis/${legnbP1} | sed "s|/|.|g").tar
+          tar -cvf $f restart/{oasis,co2box,fwf,pism_grtes}/${legnbP1} 
+          split_move $f
+          \rm -f restart/{oasis,co2box,fwf,pism_grtes}/${legnbP1}/*
+        ) &
     fi
+
 fi
+wait
 
 ###############
 # NEMO output #
@@ -285,14 +246,55 @@ then
 
     for ff in output/nemo/${legnb}/*
     do
-        if [[ $ff =~ ${exp}.*\.nc$ ]]
-        then
-            gzip ${ff}
-            split_move $ff.gz
-        else
-            [[ -f $ff ]] && split_move $ff
-        fi
+        ( if [[ $ff =~ ${exp}.*\.nc$ ]]
+          then
+              gzip ${ff}
+              split_move $ff.gz
+          else
+              [[ -f $ff ]] && split_move $ff
+          fi
+        ) &
     done
+fi
+
+###############
+# LPJG output #
+###############
+if (( do_lpjg_output )) && not_empty_dir output/lpjg/${legnb}
+then
+    echo; echo " *II* LPJG OUTPUT ${legnb} ***"; echo
+
+    ( f=$(echo output/lpjg/${legnb} | sed "s|/|.|g").tar
+      tar -cf $f output/lpjg/${legnb}
+      split_move $f
+      \rm -rf output/lpjg/${legnb}/*
+    ) &
+fi
+
+######################
+# PISM/CO2BOX output #
+######################
+if (( do_co2boxism_output ))
+then
+    if not_empty_dir output/co2box
+    then
+        echo; echo " *II* CO2BOX  OUTPUT  ***"; echo
+        ( f=output.co2box.tgz
+          tar -zcf $f output/co2box
+          split_move $f
+          \rm -f output/co2box
+        ) &
+    fi
+    if not_empty_dir output/pism_grtes
+    then
+        echo; echo " *II* PISM_GRTES  OUTPUT ***"; echo
+        ( f=output.pism_grtes.tgz
+          tar -zcf $f output/pism_grtes
+          split_move $f
+          \rm -f output/pism_grtes
+        ) &
+    fi
+    wait
 fi
 
 ##########################
@@ -302,12 +304,15 @@ if (( do_tm5_output )) && not_empty_dir output/tm5/${legnb}
 then
     echo; echo " *II* TM5 OUTPUT ${legnb} ***"; echo
 
-    f=$(echo output/tm5/${legnb} | sed "s|/|.|g").tar
-    tar -cf $f output/tm5/${legnb}
-    split_move $f
-    \rm -f output/tm5/${legnb}/*
-
+    ( f=$(echo output/tm5/${legnb} | sed "s|/|.|g").tar
+      tar -cf $f output/tm5/${legnb}
+      split_move $f
+      \rm -f output/tm5/${legnb}/*
+    ) &
 fi
+
+#wait for nemo, lpjg, and tm5 output done
+wait
 
 if (( do_tm5_restart )) && not_empty_dir restart/tm5
 then
@@ -326,19 +331,20 @@ then
 
     for k in $(eval echo {0..$((nn-1))})
     do
-        is=$((k*tm5grp))
-        nf=$tm5grp
-        ie=$(( (k+1) * tm5grp - 1))
-        (( ie > (nb-1) )) && ie=$((nb-1)) && nf=$(( ie - is + 1 ))
-        d1=$(echo ${ff[$is]} | sed -nr "s|restart/tm5.*TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
-        d2=$(echo ${ff[$ie]} | sed -nr "s|restart/tm5.*TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
-        f=tm5-restart-${d1}-${d2}.tar
-        echo " archive: $f"
-        tar -cvf $f ${ff[*]:${is}:${nf}}
-        split_move $f
-        #\rm -f ${ff[*]:${is}:${nf}}
+        ( is=$((k*tm5grp))
+          nf=$tm5grp
+          ie=$(( (k+1) * tm5grp - 1))
+          (( ie > (nb-1) )) && ie=$((nb-1)) && nf=$(( ie - is + 1 ))
+          d1=$(echo ${ff[$is]} | sed -nr "s|restart/tm5.*TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+          d2=$(echo ${ff[$ie]} | sed -nr "s|restart/tm5.*TM5_restart_(.*)_0000_glb300x200.nc|\1|"p)
+          f=tm5-restart-${d1}-${d2}.tar
+          echo " archive: $f"
+          tar -cvf $f ${ff[*]:${is}:${nf}}
+          split_move $f
+          #\rm -f ${ff[*]:${is}:${nf}}
+        ) &
     done
-
+    wait
 fi
 
 ##############
@@ -352,22 +358,25 @@ then
     echmod 755 ${archive}/output/ifs/${legnb}
 
     for f in output/ifs/${legnb}/*   # only GG not SH files are worth zipping
-    do        
-        # -- [crash cases] already compressed GG, and maybe with a split
-        if [[ $f =~ ICMGG${exp}.*gz(_[0-9])?$ ]]
-        then
-            split_move $f
+    do
+        (
+            # -- [crash cases] already compressed GG, and maybe with a split
+            if [[ $f =~ ICMGG${exp}.*gz(_[0-9])?$ ]]
+            then
+                split_move $f
 
-            # -- compress GG
-        elif [[ $f =~ ICMGG${exp} ]]
-        then
-            gzip ${f}
-            split_move $f.gz
-        else
-            # check on file, may have been emoved if a split was repeated
-            [[ -f $f ]] && split_move $f
-        fi
+                # -- compress GG
+            elif [[ $f =~ ICMGG${exp} ]]
+            then
+                gzip ${f}
+                split_move $f.gz
+            else
+                # check on file, may have been emoved if a split was repeated
+                [[ -f $f ]] && split_move $f
+            fi
+        ) &
     done
+    wait
 fi
 
 ############################
@@ -411,16 +420,17 @@ then
 
     for k in $(eval echo {0..$((nn-1))})
     do
-        is=$((k*group))
+        ( is=$((k*group))
 
-        f=${exp}_${ff[${is}]#Post_}_hiresclim2.tar.gz
+          f=${exp}_${ff[${is}]#Post_}_hiresclim2.tar.gz
 
-        echo " archive: $f"
+          echo " archive: $f"
 
-        tar -zcvf $f ${ff[*]:${is}:${group}}
-        split_move $f
+          tar -zcvf $f ${ff[*]:${is}:${group}}
+          split_move $f
+        ) &
     done
-
+    wait
     cd -
 fi
 
@@ -434,5 +444,5 @@ then
     tar -cvzf $f log
     split_move $f
 fi
-
+wait
 echo " *II* SUCCESS"
