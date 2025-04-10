@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #SBATCH --qos=nf
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=12
 #SBATCH --output=log/store.%j.out
 #SBATCH --ntasks=1
 ##SBATCH --time=12:00:00
@@ -34,10 +34,15 @@ id=r1i1p1f1
 
 # ---8<------ Hardcoded parameters
 EXP=fs01
-tag='2015-2063'
 WHATSUP=FOCI
-cleanup=0                       # DANGER ZONE !!!!! 0=archive, 1=delete files
 dryrun=0
+
+pertable=0                      # Once: uses $tag, requires manual cleanup
+#v1: tag='2015-2063'
+tag='2064-2100'
+
+peryear=1                       # for range of years which is set at the CLI with $1 and $2. Although parallelized, the limit on number of concurrent emv means you should submit about one handful of years 
+cleanup=1                       # DANGER ZONE !!!!! 0=archive, 1=delete files ; does not apply to "pertable"
 # --->8------
 
 . ./config.cfg
@@ -50,7 +55,7 @@ bckp_emcp () {
     echmod 444 ${archive}/$1
 }
 
-# Specific Experiment Def
+# Database - Specific Experiment Def
 case $EXP in
     hist) XPRMNT=historical ;           MIP=CMIP ;;
     fhi0) XPRMNT=historical ;           MIP=CMIP ;  id=r1i1p4f1 ;;
@@ -60,22 +65,6 @@ case $EXP in
     fsc2) XPRMNT=ssp245 ;               MIP=ScenarioMIP ;  id=r1i1p4f1 ;;
     s001) XPRMNT=ssp370 ;               MIP=ScenarioMIP ;;
     fs01) XPRMNT=ssp370 ;               MIP=ScenarioMIP ;  id=r1i2p1f1 ;;
-    s002) XPRMNT=ssp370-lowNTCF ;       MIP=AerChemMIP ;;
-    s003) XPRMNT=ssp370-lowNTCFCH4 ;    MIP=AerChemMIP ;;
-    sst5) XPRMNT=ssp370SST ;            MIP=AerChemMIP ;;
-    sst6) XPRMNT=ssp370SST-lowNTCF ;    MIP=AerChemMIP ;;
-    sst7) XPRMNT=ssp370SST-lowNTCFCH4 ; MIP=AerChemMIP ;;
-    onep) XPRMNT=1pctCO2;        MIP=CMIP ;;
-    hpae) XPRMNT=hist-piAer ;    MIP=AerChemMIP ;;
-    amip) XPRMNT=amip ;          MIP=CMIP ;;
-    s004) XPRMNT=ssp370pdSST ;   MIP=AerChemMIP ;;
-    hsp4) XPRMNT=histSST-piCH4 ; MIP=AerChemMIP ;;
-    hspr) XPRMNT=histSST-piAer ; MIP=AerChemMIP ;;
-    pic1) XPRMNT=piClim-control ; MIP=RFMIP ;;
-    pic2) XPRMNT=piClim-NTCF ;    MIP=AerChemMIP ;;
-    pic3) XPRMNT=piClim-CH4 ;     MIP=AerChemMIP ;;
-    pic4) XPRMNT=piClim-aer ;           MIP=RFMIP ;;
-    xh2t) XPRMNT=highres-future ;       MIP=HighResMIP ; id=r2i1p2f1 ;;
     s2hh) XPRMNT=highres-future ;       MIP=HighResMIP ; id=r1i1p2f1 ;;
     *)
         echo "Unknown experiment name: $EXP. Put your experiment in the database."
@@ -89,73 +78,138 @@ root=${MIP}/EC-Earth-Consortium/EC-Earth3-AerChem/$XPRMNT/$id
 cd $datadir
 
 # Per year
-# for year in {2015..2024}
-# do
-#     # No split (Note that 6hrPlev and 6hrPlevPt are combined here)
-#     for table in 3hr 6hrPlev E3hrPt day
-#     do
-#         ( flist=$SCRATCH/cmorised-results-flist-$WHATSUP-$table-$year
-#           find . -name "*_${table}*_EC-Earth3-AerChem_${XPRMNT}_${id}_g?_${year}*.nc" | sort > $flist
-#           tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$year.tar
-#           echo "tar -cvf $tgt -T $flist"
-#           (( dryrun )) || tar -cvf $tgt -T $flist
-#           (( dryrun )) || bckp_emcp $tgt
-#         ) &
-#     done
+if (( peryear ))
+then
+    # -- Args
+    [ "$#" -ne 2 ] && echo "*EE* script requires two arguments: YEARSTART YEAREND" && exit 1
+    [[ ! $1 =~ ^[0-9]{4}$ ]] && echo "*EE* argument YEARSTART (=$1) should be a 4-digit number" && exit 1
+    [[ ! $2 =~ ^[0-9]{4}$ ]] && echo "*EE* argument YEAREND (=$2) should be a 4-digit number" && exit 1
 
-#     # Require a split
-#     for table in 6hrLev AER6hrPt CF3hr
-#     do
-#         flist=$SCRATCH/cmorised-results-flist-$WHATSUP-$table-$year
-#         find . -name *_${table}_EC-Earth3-AerChem_${XPRMNT}_${id}_g?_${year}*.nc | sort > $flist
-#         # split
-#         split -d -a1 -n r/2 $flist $flist-part
-#         for part in {0..1}
-#         do
-#             ( tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$year-part$part.tar
-#               echo "tar -cvf $tgt -T $flist-part$part"
-#               (( dryrun )) || tar -cvf $tgt -T $flist-part$part
-#               (( dryrun )) || bckp_emcp $tgt
-#             ) &
-#         done
-#     done
+    #v1: for year in {2016..2024}
+    #v1: for year in {2025..2044}
+    #v1: for year in {2045..2055}
+    #v1: for year in {2056..2063}
+    #for year in {2064..2070}
+    for year in $(eval echo {$1..$2})
+    do
+        # No split (Note that 6hrPlev and 6hrPlevPt are combined here)
+        for table in 3hr 6hrPlev E3hrPt day
+        do
+            flist=$SCRATCH/cmorised-results-flist-$WHATSUP-$table-$year
+            if [[ ! -s $flist ]] && (( cleanup ))
+            then
+                echo "ERROR unless you know - then comment"
+                exit 1
+            fi
+            [[ ! -s $flist ]] && find . -name "*_${table}*_EC-Earth3-AerChem_${XPRMNT}_${id}_g?_${year}*.nc" | sort > $flist
+            if (( cleanup ))
+            then
+                ( echo "Remove files from $flist"
+                  <$flist xargs rm
+                ) &
+            else
+                ( tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$year.tar
+                  echo "tar -cvf $tgt -T $flist"
+                  (( dryrun )) || tar -cvf $tgt -T $flist
+                  (( dryrun )) || bckp_emcp $tgt
+                ) &
+            fi
+        done
 
-# done
+        # Require split in two
+        for table in AER6hrPt
+        do
+            flist=$SCRATCH/cmorised-results-flist-$WHATSUP-$table-$year
+            if [[ ! -s $flist ]]
+            then
+                find . -name *_${table}_EC-Earth3-AerChem_${XPRMNT}_${id}_g?_${year}*.nc | sort > $flist
+                split -d -a1 -n r/2 $flist $flist-part
+            fi
+            for part in {0..1}
+            do
+                if (( cleanup ))
+                then
+                    ( echo "Remove files from $flist-part$part"
+                      <$flist-part$part xargs rm
+                    ) &
+                else
+                    ( tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$year-part$part.tar
+                      echo "tar -cvf $tgt -T $flist-part$part"
+                      (( dryrun )) || tar -cvf $tgt -T $flist-part$part
+                      (( dryrun )) || bckp_emcp $tgt
+                    ) &
+                fi
+            done
+        done
 
-# Per table - one table / tarball
-for table in Omon AERhr AERmon Amon CFmon E3hr AERday CFday Oday
-do
-    ( tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$tag.tar
-      echo "tar -cvf $tgt $root/$table"
-      (( dryrun )) || tar -cvf $tgt $root/$table
-      (( dryrun )) || ls -l $tgt
-      (( dryrun )) || bckp_emcp $tgt
-      #(( cleanup )) && rm -rf $root/Omon $root/AERhr $root/AERmon $root/Amon $root/CFmon $root/E3hr $root/AERday $root/CFday $root/Oday
-    ) &
-done
+        # Require split in three
+        for table in 6hrLev CF3hr
+        do
+            flist=$SCRATCH/cmorised-results-flist-$WHATSUP-$table-$year
+            if [[ ! -s $flist ]]
+            then
+                find . -name *_${table}_EC-Earth3-AerChem_${XPRMNT}_${id}_g?_${year}*.nc | sort > $flist
+                split -d -a1 -n r/3 $flist $flist-part
+            fi
+            for part in {0..2}
+            do
+                if (( cleanup ))
+                then
+                    ( echo "Remove files from $flist-part$part"
+                      <$flist-part$part xargs rm
+                    ) &
+                else
+                    ( tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$year-part$part.tar
+                      echo "tar -cvf $tgt -T $flist-part$part"
+                      (( dryrun )) || tar -cvf $tgt -T $flist-part$part
+                      (( dryrun )) || bckp_emcp $tgt
+                    ) &
+                fi
+            done
+        done
 
-# Per table - several tables at once
-tgt=EC-Earth3-AerChem-$WHATSUP-$id-OTHERS-$tag.tar
-echo "tar -cvf $tgt $root/Emon $root/SIday $root/SImon $root/Lmon $root/LImon $root/AERmonZ"
-if ! (( dryrun )) ; then
-    ( tar -cvf $tgt $root/Emon $root/SIday $root/SImon $root/Lmon $root/LImon $root/AERmonZ
-      ls -l $tgt
-      bckp_emcp $tgt
-    ) &
-    #(( cleanup )) && rm -rf $root/Emon $root/SIday $root/SImon $root/Lmon $root/LImon $root/AERmonZ
+    done
 fi
 
-# Once - fixed fields
-tgt=EC-Earth3-AerChem-$WHATSUP-$id-FX.tar
-echo "tar -cvf $tgt $root/fx $root/Ofx"
-if ! (( dryrun )) ; then
-    tar -cvf $tgt $root/fx $root/Ofx
-    ls -l $tgt
-    bckp_emcp $tgt
+if (( pertable ))
+then
+    # Per table - one table / tarball
+    for table in Omon AERhr AERmon Amon CFmon E3hr AERday CFday Oday
+    do
+        ( tgt=EC-Earth3-AerChem-$WHATSUP-$id-$table-$tag.tar
+          echo "tar -cvf $tgt $root/$table"
+          (( dryrun )) || tar -cvf $tgt $root/$table
+          (( dryrun )) || ls -l $tgt
+          (( dryrun )) || bckp_emcp $tgt
+          #(( cleanup )) && rm -rf $root/Omon $root/AERhr $root/AERmon $root/Amon $root/CFmon $root/E3hr $root/AERday $root/CFday $root/Oday
+        ) &
+    done
+
+    # Per table - several tables at once
+    tgt=EC-Earth3-AerChem-$WHATSUP-$id-OTHERS-$tag.tar
+    echo "tar -cvf $tgt $root/Emon $root/SIday $root/SImon $root/Lmon $root/LImon $root/AERmonZ"
+    if ! (( dryrun )) ; then
+        ( tar -cvf $tgt $root/Emon $root/SIday $root/SImon $root/Lmon $root/LImon $root/AERmonZ
+          ls -l $tgt
+          bckp_emcp $tgt
+        ) &
+        #(( cleanup )) && rm -rf $root/Emon $root/SIday $root/SImon $root/Lmon $root/LImon $root/AERmonZ
+    fi
+
+    # Once - fixed fields
+    tgt=EC-Earth3-AerChem-$WHATSUP-$id-FX.tar
+    echo "tar -cvf $tgt $root/fx $root/Ofx"
+    if ! (( dryrun )) ; then
+        tar -cvf $tgt $root/fx $root/Ofx
+        ls -l $tgt
+        bckp_emcp $tgt
+    fi
 fi
 
 wait
 echo '*** SUCCESS ***'
-echo "els -l $archive"
-els -l $archive
-
+if ! (( cleanup ))
+then
+    echo "els -l $archive"
+    els -l $archive
+fi
