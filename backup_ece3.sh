@@ -282,7 +282,7 @@ then
         ( f=output.co2box.tgz
           tar -zcf $f output/co2box
           split_move $f
-          \rm -f output/co2box
+          for d in  output/co2box/*; do rm -rf $d; done
         ) &
     fi
     if not_empty_dir output/pism_grtes
@@ -291,7 +291,7 @@ then
         ( f=output.pism_grtes.tgz
           tar -zcf $f output/pism_grtes
           split_move $f
-          \rm -f output/pism_grtes
+          for d in  output/pism_grtes/*; do rm -rf $d; done
         ) &
     fi
     wait

@@ -51,7 +51,7 @@ fi
 
 if [[ -z $omodels ]]            # default to all models
 then 
-    omodels="ifs nemo tm5 oasis"
+    omodels="ifs nemo tm5 oasis lpjg co2box pism_grtes"
     #exit 0
 fi
 
