@@ -414,7 +414,7 @@ then
 
     ff=($(ls))
     nb=${#ff[*]}
-    nn=$(( nb / group + 1 ))
+    nn=$(( nb / group + (nb % group > 0) ))
     echo
     echo " making $nn archives of ${group} years each"
 
