@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
 #SBATCH --qos=nf
-#SBATCH --cpus-per-task=7
+#SBATCH --cpus-per-task=2
 #SBATCH --output=focipush.%j.out
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
 #SBATCH --account=nlchekli
+
+# Use 7 cpus-per-task for USECASE=1, and 2 cpus-per-task for USECASE=2
 
 # The 6-hourly EC-Earth output on ECFS below:
 # 
@@ -26,17 +28,19 @@
 # I'm not sure if this is needed for WRF, but the 'tos' variable (ocean temperature) is available in the 3hr table only.
 #
 
-USECASE=1
+USECASE=2
+
+# --- Dirs
+tapedir='ec:/nm6/ECEARTH-RUNS/fs01/cmor'
+localdir='/ec/res4/scratch/nldac/FOCI-project'
+targetdir='/storage/pool02/foci/WP6/ec-earth3-aerchem/ssp370_20452055'
 
 # --- Part 1 ---  retrieve from tape
 
 if [[ $USECASE -eq 1 ]]
 then
 
-    tapedir='ec:/nm6/ECEARTH-RUNS/fs01/cmor'
-    tgtd='/ec/res4/scratch/nldac/FOCI-project'
-
-    mkdir -p $tgtd
+    mkdir -p $localdir
 
     for YYYY in {2045..2055}; do
         echo $YYYY
@@ -49,15 +53,14 @@ then
                                                    EC-Earth3-AerChem-FOCI-r1i2p1f1-AER6hrPt-${YYYY}-part1.tar \
                                                    EC-Earth3-AerChem-FOCI-r1i2p1f1-3hr-${YYYY}.tar
         do
-            ecp $tapedir/$f $tgtd/$f &
+            ecp $tapedir/$f $localdir/$f &
         done
         wait
     done
+    
 elif [[ $USECASE -eq 2 ]]
 then
-    echo Do NothinG
-    # --- Part 2 --- sent to Prague
-
-    # Target
-    #ssh -J foci@meop29.troja.mff.cuni.cz foci@kamet4
+    cd $localdir
+    find . -type f |
+        parallel -j2 -X rsync -R -Hav ./{} foci@kamet4:$targetdir/
 fi
