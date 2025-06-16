@@ -443,6 +443,13 @@ then
     f=log.${exp}.upto.${legnb}.tar.gz
     tar -cvzf $f log
     split_move $f
+
+    set +e
+    f=extra_rst001.tar.gz
+    tar -zcvf $f restart/lpjg/001 output/nemo/ofx-data restart/pism_grtes/001 restart/co2box/001
+    split_move $f
+    rm -rf restart/lpjg/001 output/nemo/ofx-data restart/pism_grtes/001 restart/co2box/001
+    set -e
 fi
 wait
 echo " *II* SUCCESS"
