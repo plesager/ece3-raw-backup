@@ -325,7 +325,7 @@ then
 
     ff=( $(find restart/tm5 -type f | sort) )
     nb=${#ff[@]}
-    nn=$(( nb / tm5grp + 1 ))
+    nn=$(( nb / tm5grp + (nb % tm5grp > 0) ))
     echo
     echo " making $nn archives of ${nb} years each"
 
