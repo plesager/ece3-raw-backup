@@ -2,14 +2,14 @@
 
 #SBATCH --qos=nf
 #SBATCH --cpus-per-task=10
-#SBATCH --output=log/store.optimesm.gw23.%j.out
+#SBATCH --output=log/cmor-store/store.optimesm.gw43.pt.%j.out
 #SBATCH --ntasks=1
 #SBATCH --account=nlchekli
 ##SBATCH --time=12:00:00
 
 set -ue
 
-# Although parallelized, the limit on number of concurrent "emv" means you should submit only a handful parallel tasks 
+# Although parallelized, the limit on number of concurrent "emv" means you should submit only a handful of parallel tasks 
 
 ############
 #  Setup   #
@@ -25,8 +25,8 @@ id=r1i1p1f1
 
 # ---8<------ HARDCODED PARAMETERS
 EXP=$1
-peryear=1                       # for range of years
-pertable=0                      # uses $tag
+peryear=0                       # for range of years
+pertable=1                      # uses $tag
 
 dryrun=0
 cleanup=0                       # DANGER ZONE !!!!! 0=archive, 1=delete files
@@ -97,7 +97,7 @@ root=${MIP}/EC-Earth-Consortium/${ECEMODEL}/$XPRMNT/$id
 
 cd $datadir
 
-# Per year
+# Per year - for variables (typically 3D ones) that are too large for one tarball 
 if (( peryear ))
 then
 
@@ -133,9 +133,10 @@ then
     done    
 fi
 
+# Per table - either variables or tables that fit in one tarball
 if (( pertable ))
 then
-    # Per table - one APday variable / tarball
+    # Per table - one APday variable / tarball (for SOME variables in that APday table)
     tlist="prsn prc clt psl rsus pr tas tasmax tasmin rsds rlds rlus rlut uas hurs vas hfls hfss huss sfcWind"
     for table in $tlist
     do
@@ -147,9 +148,27 @@ then
           (( cleanup )) && rm -rf $root/APday/$table
         ) &
     done
+    wait ; echo
 
-    # Per table - one table / tarball {TODO: move the first three in the peryear case}
-    for table in APmon OPmonLev OBmonLev OBmon LPday LPmon OPday OPmon SImon
+    # Per table - one variable / tarball (for ALL variables in those table)
+    tlist="APmon OPmonLev OBmonLev"
+    for table in $tlist
+    do
+        for var in $(ls $root/$table)
+        do
+            ( tgt=${ECEMODEL}-$XPRMNT-$id-$table-$var-$tag.tar
+              echo "tar -cvf $tgt $root/$table"
+              (( dryrun )) || tar -cvf $tgt $root/$table/$var
+              (( dryrun )) || ls -l $tgt
+              (( dryrun )) || split_move $tgt
+              (( cleanup )) && rm -rf $root/$table/$var
+            ) &
+        done
+        wait ; echo
+    done
+    
+    # Per table - one table / tarball
+    for table in OBmon LPday LPmon OPday OPmon SImon
     do
         ( tgt=${ECEMODEL}-$XPRMNT-$id-$table-$tag.tar
           echo "tar -cvf $tgt $root/$table"
@@ -159,6 +178,7 @@ then
           (( cleanup )) && rm -rf $root/$table
         ) &
     done
+    wait ; echo
 
     # Several tables at once
     tgt=${ECEMODEL}-$XPRMNT-$id-OTHERS-$tag.tar
