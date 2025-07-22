@@ -188,8 +188,8 @@ then
           ls -l $tgt
           split_move $tgt
         ) &
-        (( cleanup )) && rm -rf $root/APfx $root/LImon $root/LPfx $root/LPyr $root/LPyrPt $root/OPfx $root/OPmonZ $root/SIday $root/SImonPt
     fi
+    (( cleanup )) && rm -rf $root/APfx $root/LImon $root/LPfx $root/LPyr $root/LPyrPt $root/OPfx $root/OPmonZ $root/SIday $root/SImonPt
 fi
 
 wait
