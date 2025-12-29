@@ -7,6 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --account=nlchekli
 
+# **IMPORTANT** need to login as nldac before running script (for case 1: write permission needed, for case 2: ssh key setup for nldac user)
 # Use 7 cpus-per-task for USECASE=1, and 2 cpus-per-task for USECASE=2
 
 # The 6-hourly EC-Earth output on ECFS below:
