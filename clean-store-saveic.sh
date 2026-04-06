@@ -31,8 +31,9 @@ YMD=$2
 ystart=$3
 YYYY=${YMD:0:4}
 
-flat=1 # older way of working: flat directory where all restart are in the top dir, instead of subdir for each component
-hl=    # hardlink. Use "-l" if not copying across file system
+clean=1 # remove packaged icdir
+flat=0  # older way of working: flat directory where all restart are in the top dir, instead of subdir for each component
+hl=     # hardlink. Use "-l" if not copying across file system
 
 . ./config.cfg 
 
@@ -56,6 +57,7 @@ INDIR=${runs_dir}/$EXP/save_ic
 #########
 if [[ -d $INDIR/$YMD/oasis ]]
 then
+    echo "SAVEIC - copy oasis"
     mkdir $WDIR/oasis
     cp -u $INDIR/$YMD/oasis/* $WDIR/oasis
 fi
@@ -65,6 +67,7 @@ fi
 #######
 if [[ -d $INDIR/$YMD/tm5 ]]
 then
+    echo "SAVEIC - copy tm5"
     mkdir $WDIR/tm5
     cp -u $INDIR/$YMD/tm5/* $WDIR/tm5
 fi
@@ -145,6 +148,8 @@ fi
 ########
 # PISM #
 ########
+
+## ATTENTION - YOU NEED TO BE TWO LEGS AHEAD TO RUN THIS
 if [[ -d ${runs_dir}/$EXP/restart/pism_grtes ]]
 then
     mkdir $WDIR/pism_grtes
@@ -179,6 +184,10 @@ then
 fi
 
 cd $WDIR
+cd oasis
+[[ -f rstas_pism.nc ]] && ln -s rstas_pism.nc rstas_grtes.nc || :
+
+cd $WDIR
 cd ..
 tar -cvzf $tarb $YMD
 
@@ -188,3 +197,11 @@ echmod 444 ${ecfs_dir}/$EXP/ics/$tarb
 els -l ${ecfs_dir}/$EXP/ics/$tarb
 
 (( flat )) && { cd $WDIR; for f in */*; do ln $f; done ; } || :
+
+# Do not store (limited disk space!)
+if (( clean ))
+then
+    cd $WDIR
+    cd ..
+    rm -rf $YMD
+fi
